@@ -14,6 +14,7 @@ my $sig="\x89PNG\r\n\x1a\n";
 sub chunk { my ($t,$d)=@_; pack('N',length($d)).$t.$d.pack('N',crc32($t.$d)) }
 sub header { chunk('IHDR',pack('NNCCCCC',@_)) }
 sub fixture {
+    die 'fixture requires exactly four arguments' unless @_ == 4;
     my ($w,$h,$type,$raw)=@_;
     return $sig.header($w,$h,8,$type,0,0,0).chunk('IDAT',compress($raw)).chunk('IEND','');
 }
@@ -53,7 +54,10 @@ my $end=chunk('IEND','');
 my $split=$sig.$h.join('',map {chunk('IDAT',$_)} split //,$z).$end;
 ($out)=$png->decode(\$split);
 is($$out,$expected,'one-byte IDAT chunks');
-my $big=fixture(1024,1024,6,("\0".pack('C4',1,2,3,255)x1024)x1024);
+# Force scalar context: parenthesized x in an argument list repeats a list.
+my $big_raw=("\0".pack('C4',1,2,3,255)x1024)x1024;
+is(length($big_raw),1024*(1024*4+1),'maximum fixture raw byte count');
+my $big=fixture(1024,1024,6,$big_raw);
 ($out)=$png->decode(\$big);
 is(length($$out),3*1024*1024,'maximum dimensions and multi-buffer inflate');
 is($$out,pack('C3',1,2,3)x(1024*1024),'maximum image pixels');
