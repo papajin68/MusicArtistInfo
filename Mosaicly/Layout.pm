@@ -18,7 +18,7 @@ sub plan {
     die 'canvas_size must be an integer between 64 and 8192'
         unless defined($size) && !ref($size) && $size =~ /\A[0-9]+\z/ && $size >= 64 && $size <= 8192;
 
-    my $gap = exists $args{tile_gap} ? $args{tile_gap} : 2;
+    my $gap = exists $args{tile_gap} ? $args{tile_gap} : 0;
     die 'tile_gap must be a nonnegative integer smaller than canvas_size / 4'
         unless defined($gap) && !ref($gap) && $gap =~ /\A[0-9]+\z/ && $gap < $size / 4;
 

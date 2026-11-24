@@ -57,4 +57,7 @@ for my $bad (undef, 'stretch', '') {
     like($@, qr/incomplete_grid/, 'invalid grid mode is rejected');
 }
 
+is_deeply($layout->plan(cover_count => 4),
+    $layout->plan(cover_count => 4, tile_gap => 0), 'default gap is zero');
+
 done_testing();
