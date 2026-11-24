@@ -49,6 +49,7 @@ sub discover {
 }
 sub ids { [map {$_->{album_id}} @{$_[0]{candidates}}] }
 my $r=discover(1);
+BAIL_OUT('initial discovery failed: ' . ($r->{reason} // 'unknown')) unless $r->{ok};
 ok($r->{ok},'discovery success');
 is_deeply(ids($r),[10,11,12,13,15,17],'native roles, distinct albums, primary contributor join');
 my $a=$r->{candidates}[0];

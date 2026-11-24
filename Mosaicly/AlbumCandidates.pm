@@ -60,16 +60,19 @@ sub _discover {
     my @roles = grep { !$seen{$_}++ } @{$ctx->{roles}};
     die 'invalid contributor roles' if grep { !_id($_) } @roles;
     my ($membership, @bind);
+    my $membership_join = '';
     if (defined($ctx->{va_id}) && $id eq $ctx->{va_id}) {
         $membership = 'a.compilation = 1';
     } else {
-        $membership = 'EXISTS (SELECT 1 FROM contributor_album ca WHERE ca.album = a.id AND ca.contributor = ?';
+        # Explicit deduplication avoids the SQLite 3.51 EXISTS-to-JOIN regression.
+        my $role_filter = 'contributor = ?';
         push @bind, $id;
         if (@roles) {
-            $membership .= ' AND ca.role IN (' . join(',', map {'?'} @roles) . ')';
+            $role_filter .= ' AND role IN (' . join(',', map {'?'} @roles) . ')';
             push @bind, @roles;
         }
-        $membership .= ')';
+        $membership_join = "JOIN (SELECT DISTINCT album FROM contributor_album WHERE $role_filter) ca ON ca.album = a.id";
+        $membership = '1 = 1';
     }
 
     # Native albums query joins the primary contributor. Native titles query
@@ -78,6 +81,7 @@ sub _discover {
         WITH eligible AS (
             SELECT a.id, a.title, a.year, a.artwork
             FROM albums a JOIN contributors c ON c.id = a.contributor
+            $membership_join
             WHERE $membership
         ), eligible_tracks AS (
             SELECT t.id, t.album, t.urlmd5
@@ -123,9 +127,11 @@ sub _discover {
     my @candidates;
     my $skipped_titles = 0;
     my $unsupported_artwork = 0;
+    my %album_seen;
     for my $r (@$rows) {
-        return { ok => 0, reason => 'ambiguous_statistics' } if $r->{ambiguous};
-        return { ok => 0, reason => 'invalid_statistics' } if $r->{invalid_counts};
+        return { ok => 0, reason => 'duplicate_album_rows' } if $album_seen{$r->{id}}++;
+        return { ok => 0, reason => 'ambiguous_statistics' } if ($r->{ambiguous} // 0) > 0;
+        return { ok => 0, reason => 'invalid_statistics' } if ($r->{invalid_counts} // 0) > 0;
         my $title = $r->{title} // '';
         $title = decode('UTF-8', $title, FB_CROAK) unless utf8::is_utf8($title);
         $title =~ s/\A\s+|\s+\z//g;
