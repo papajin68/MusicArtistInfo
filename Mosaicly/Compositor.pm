@@ -134,8 +134,10 @@ sub prepare {
     my ($ow,$oh)=$o>=5?($sh,$sw):($sw,$sh);
     my (%variants,%fitted);
     my $bg=pack('H6',$p->{background});
-    # Conservatively treat BMP as potentially transparent.
-    my $method=$format eq 'jpeg'?'resize_gm':'resize_gm_fixed_point';
+    # Floating-point GM produces visible high-contrast RGB and alpha
+    # artifacts on the tested native Image::Scale 0.14 platform.
+    # Use fixed-point GM consistently for all source formats.
+    my $method='resize_gm_fixed_point';
     for my $c (@$v) {
         my ($cw,$ch)=@$c{qw(width height)};
         my $key=$cw.'x'.$ch;
