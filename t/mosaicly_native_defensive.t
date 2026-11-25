@@ -60,7 +60,7 @@ sub prepare_source {
 # Unexpected exception propagation
 
 {
-    no warnings 'redefine';
+    no warnings qw(redefine once);
 
     local *Image::Scale::new = sub {
         die "Injected unexpected constructor exception\n";
