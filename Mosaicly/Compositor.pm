@@ -80,6 +80,17 @@ sub variants_for_slot {
     }
     return \@out;
 }
+# Native 0.14 can throw a buffer error on truncated source headers.
+# Classify only known malformed-input exceptions; unexpected errors stay fatal.
+sub _open_source {
+    my ($bytes)=@_;
+    my $im=eval { Image::Scale->new($bytes) };
+    if ($@) {
+        return undef if $@ =~ /\Abuffer_consume: buffer error(?: at |\n|\z)/;
+        die $@;
+    }
+    return $im;
+}
 sub _resize {
     my ($im,$method,$opts)=@_;
     my $ok=eval {$im->$method($opts)};
@@ -114,7 +125,7 @@ sub prepare {
     # Do not enable in production before worker isolation is implemented.
     return _failure('native_memory_limit') if $progressive && !$args{bounded_worker_progressive};
     my $o=$format eq 'jpeg'?$orient->jpeg_orientation(\$bytes):1;
-    my $im=Image::Scale->new(\$bytes);
+    my $im=_open_source(\$bytes);
     return _failure('corrupt_image') unless $im;
     my ($sw,$sh)=($im->width,$im->height);
     return _failure('corrupt_image') unless _int($sw) && _int($sh) && $sw && $sh;
@@ -133,7 +144,7 @@ sub prepare {
         my $fitkey=$w.'x'.$h;
         my $pixels=$fitted{$fitkey};
         unless ($pixels) {
-            $im ||= Image::Scale->new(\$bytes);
+            $im ||= _open_source(\$bytes);
             return _failure('corrupt_image') unless $im;
             my ($rw,$rh)=$o>=5?($h,$w):($w,$h);
             my %opts=(width=>$rw,height=>$rh,keep_aspect=>0,ignore_exif=>1);
