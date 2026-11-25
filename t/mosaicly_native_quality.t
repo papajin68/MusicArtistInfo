@@ -1,15 +1,13 @@
 use strict;
 use warnings;
 use Test::More;
-BEGIN {
-    eval { require Image::Scale; 1 }
-        or plan skip_all => 'Native Image::Scale unavailable';
-    for my $module (qw(Layout RGB BMP NormalizedPNG Orientation Compositor)) {
-        require "./Mosaicly/$module.pm";
-        $INC{"Plugins/MusicArtistInfo/Mosaicly/$module.pm"} = 1;
-    }
-}
+use FindBin;
+use lib "$FindBin::Bin/lib";
+use MosaiclyTestSupport qw(load_native);
 use Digest::SHA qw(sha256_hex);
+
+load_native();
+
 my $c='Plugins::MusicArtistInfo::Mosaicly::Compositor';
 my $bmp='Plugins::MusicArtistInfo::Mosaicly::BMP';
 my $png='Plugins::MusicArtistInfo::Mosaicly::NormalizedPNG';
