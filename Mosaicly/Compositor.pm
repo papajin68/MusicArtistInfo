@@ -117,7 +117,17 @@ sub prepare {
     my $bytes=$args{bytes};
     die 'expected encoded bytes' if defined($bytes) && (ref($bytes) || utf8::is_utf8($bytes));
     return _failure('empty_source') unless defined($bytes) && length($bytes);
-    return _failure('source_too_large') if length($bytes)>SOURCE_BYTES;
+    # Optional stricter caller policy; never permit relaxing defensive caps.
+    my $limits = $args{source_limits} // {};
+    die 'invalid source limits' unless ref($limits) eq 'HASH';
+    my %caps = (bytes=>SOURCE_BYTES, axis=>SOURCE_DIM, pixels=>SOURCE_PIXELS);
+    for my $key (keys %$limits) {
+        die 'invalid source limit' unless exists($caps{$key})
+            && _int($limits->{$key}) && $limits->{$key}>=1
+            && $limits->{$key}<=$caps{$key};
+        $caps{$key}=$limits->{$key};
+    }
+    return _failure('source_too_large') if length($bytes)>$caps{bytes};
     my $format=_format(\$bytes);
     return _failure('unsupported_format') unless $format;
     my $progressive=$format eq 'jpeg' && _progressive(\$bytes);
@@ -129,8 +139,8 @@ sub prepare {
     return _failure('corrupt_image') unless $im;
     my ($sw,$sh)=($im->width,$im->height);
     return _failure('corrupt_image') unless _int($sw) && _int($sh) && $sw && $sh;
-    return _failure('source_dimensions_exceeded') if $sw>SOURCE_DIM || $sh>SOURCE_DIM;
-    return _failure('source_pixel_limit') if $sw*$sh>SOURCE_PIXELS;
+    return _failure('source_dimensions_exceeded') if $sw>$caps{axis} || $sh>$caps{axis};
+    return _failure('source_pixel_limit') if $sw*$sh>$caps{pixels};
     my ($ow,$oh)=$o>=5?($sh,$sw):($sw,$sh);
     my (%variants,%fitted);
     my $bg=pack('H6',$p->{background});
