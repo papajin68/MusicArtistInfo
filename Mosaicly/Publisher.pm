@@ -155,9 +155,12 @@ sub _publish {
     if (defined($row->{portrait}) || defined($row->{portraitid})) {
         return _fail('already_assigned');
     }
+    return _fail('publication_pending') if $self->{pending};
     return _fail('local_artwork') if _local($id,$name);
     return _fail('stale_sources') unless _sources_current($id,$job,$result);
     return _fail('stale_job') unless $self->{current}->();
+    # Retain a fail-closed reservation if publication or registration is ambiguous.
+    $self->{pending}=$path;
     return _fail('file_publication_failed') unless _publish_file($self->{root},$path,$bytes);
     my $portraitid=Slim::Music::Artwork->generateImageId($url);
     return _fail('invalid_portrait_id') unless defined($portraitid)
@@ -174,6 +177,7 @@ sub _publish {
         undef,$url,$portraitid,$id,$name);
     die 'registration failed' unless defined($n) && !$dbh->err;
     return _fail('association_changed') unless $n==1;
+    delete $self->{pending};
     return {ok=>1,contributor_id=>$id,portrait=>$url,portraitid=>$portraitid};
 }
 
