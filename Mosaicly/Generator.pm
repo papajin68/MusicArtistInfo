@@ -6,7 +6,6 @@ use bytes;
 use Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates;
 use Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver;
 use Plugins::MusicArtistInfo::Mosaicly::Selection;
-use Plugins::MusicArtistInfo::Mosaicly::Compositor;
 use Plugins::MusicArtistInfo::Mosaicly::Layout;
 
 my $discover = 'Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates';
@@ -41,30 +40,111 @@ sub generate {
         || $progressive !~ /\A[01]\z/;
     return {ok=>0, reason=>'worker_containment_required'}
         unless _contained();
-    my $r = eval { $class->_generate($id, $progressive) };
+    my $r = eval {
+        require Plugins::MusicArtistInfo::Mosaicly::Compositor;
+        if (exists $args{job}) {
+            $class->_generate_job($id, $progressive, $args{job});
+        } else {
+            $class->_generate($id, $progressive);
+        }
+    };
     return {ok=>0, reason=>'generation_exception', contributor_id=>$id}
         if $@ || !defined($r);
     return $r;
 }
 
-sub _generate {
-    my ($class, $id, $progressive) = @_;
-    my $profile = {canvas_size=>600, tile_gap=>0,
-        incomplete_grid=>'repeat', background=>'202020'};
-    my $d = $discover->discover(contributor_id=>$id);
-    return {ok=>0, reason=>$d->{reason}, contributor_id=>$id}
-        unless $d->{ok};
-
-    # Keep accepted ranking and bound native acquisition attempts.
-    # Missing artwork does not consume the 32-source budget.
+# Shared ranking/budget policy. Only the server-side preparation step
+# needs the initialized library when using the fresh-process worker.
+sub _candidates {
+    my ($d) = @_;
     my $ranked = $selection->rank($d->{candidates});
     my @available = grep { defined($_->{artwork_id}) } @$ranked;
     my $available_count = scalar @available;
     splice @available, 32 if @available > 32;
+    return (\@available, {
+        discovery=>$d->{diagnostics},
+        discovered_count=>scalar(@$ranked),
+        missing_artwork_count=>scalar(@$ranked)-$available_count,
+        candidate_budget_omitted=>$available_count-scalar(@available),
+    });
+}
 
+# Initialized server: capture metadata only, not artwork or native images.
+sub prepare_job {
+    my ($class,%args) = @_;
+    my $id = $args{contributor_id};
+    return {ok=>0,reason=>'invalid_identity'} unless defined($id)
+        && !ref($id) && $id =~ /\A[1-9][0-9]*\z/;
+    my $job = eval {
+        my $d = $discover->discover(contributor_id=>$id);
+        if (!$d->{ok}) {
+            +{ok=>0,reason=>$d->{reason},contributor_id=>$id};
+        } else {
+            my ($candidates,$diag) = _candidates($d);
+            my @entries;
+            for my $c (@$candidates) {
+                my $source = $resolver->describe(
+                    album_id=>$c->{album_id},artwork_id=>$c->{artwork_id});
+                # Keep failures in ranking order: Selection decides whether
+                # to skip or fail, and need not visit lower-ranked entries.
+                push @entries, {candidate=>$c,source=>$source};
+            }
+            +{ok=>1,contributor_id=>$id,entries=>\@entries,diagnostics=>$diag};
+        }
+    };
+    return {ok=>0,reason=>'job_preparation_exception',contributor_id=>$id}
+        if $@ || !defined($job);
+    return $job;
+}
+
+sub _generate_job {
+    my ($class,$id,$progressive,$job) = @_;
+    my $invalid = {ok=>0,reason=>'invalid_job',contributor_id=>$id};
+    return $invalid unless ref($job) eq 'HASH' && ($job->{ok}//0) eq '1'
+        && defined($job->{contributor_id}) && !ref($job->{contributor_id})
+        && $job->{contributor_id} eq $id && ref($job->{entries}) eq 'ARRAY'
+        && @{$job->{entries}}<=32 && ref($job->{diagnostics}) eq 'HASH';
+    my (@candidates,%sources);
+    for my $entry (@{$job->{entries}}) {
+        return $invalid unless ref($entry) eq 'HASH'
+            && ref($entry->{candidate}) eq 'HASH' && ref($entry->{source}) eq 'HASH';
+        my ($c,$d) = @$entry{qw(candidate source)};
+        my ($album,$art) = @$c{qw(album_id artwork_id)};
+        return $invalid unless defined($album) && !ref($album) && $album =~ /\A[1-9][0-9]*\z/
+            && defined($art) && !ref($art) && $art =~ /\A[0-9a-f]{8}\z/
+            && !exists($sources{$album})
+            && defined($d->{ok}) && !ref($d->{ok}) && $d->{ok} =~ /\A[01]\z/;
+        return $invalid if $d->{ok} && (($d->{album_id}//'') ne $album
+            || ($d->{artwork_id}//'') ne $art);
+        $sources{$album}=$d;
+        push @candidates,$c;
+    }
+    return $class->_compose($id,$progressive,\@candidates,$job->{diagnostics},sub {
+        my %a = @_;
+        my $d = $sources{$a{album_id}};
+        return $d unless $d->{ok};
+        return $resolver->retrieve($d);
+    });
+}
+
+# Retained initialized-runtime entry point for existing bounded callers.
+sub _generate {
+    my ($class, $id, $progressive) = @_;
+    my $d = $discover->discover(contributor_id=>$id);
+    return {ok=>0, reason=>$d->{reason}, contributor_id=>$id}
+        unless $d->{ok};
+    my ($candidates,$diag) = _candidates($d);
+    return $class->_compose($id,$progressive,$candidates,$diag,
+        sub { $resolver->resolve(@_) });
+}
+
+sub _compose {
+    my ($class,$id,$progressive,$candidates,$base_diag,$retrieve) = @_;
+    my $profile = {canvas_size=>600, tile_gap=>0,
+        incomplete_grid=>'repeat', background=>'202020'};
     my $s = $selection->select(
-        candidates=>\@available, max_covers=>4,
-        retrieve=>sub { $resolver->resolve(@_) },
+        candidates=>$candidates, max_covers=>4,
+        retrieve=>$retrieve,
         prepare=>sub {
             my %p = @_;
             # Progressive opt-in is a worker assertion of external timeout
@@ -79,12 +159,7 @@ sub _generate {
             );
         },
     );
-    my $diag = {
-        discovery=>$d->{diagnostics}, selection=>$s->{diagnostics},
-        discovered_count=>scalar(@$ranked),
-        missing_artwork_count=>scalar(@$ranked)-$available_count,
-        candidate_budget_omitted=>$available_count-scalar(@available),
-    };
+    my $diag = { %$base_diag, selection=>$s->{diagnostics} };
     return {ok=>0, reason=>$s->{reason}, contributor_id=>$id, diagnostics=>$diag}
         unless $s->{ok};
     my $selected = $s->{selected};
