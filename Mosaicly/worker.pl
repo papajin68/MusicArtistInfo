@@ -114,6 +114,9 @@ require Slim::Utils::Prefs;
 die 'preferences directory escaped worker runtime'
     unless abs_path(Slim::Utils::Prefs::dir()) eq "$dir/runtime/prefs";
 Slim::Utils::Prefs::preferences('server')->init({userDefinedRoles=>{}});
+# Contributor relationship definitions also need the native SQL collation
+# helper. Loading the class does not initialize or connect to the database.
+require Slim::Utils::SQLiteHelper;
 require Plugins::MusicArtistInfo::Mosaicly::Generator;
 my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
