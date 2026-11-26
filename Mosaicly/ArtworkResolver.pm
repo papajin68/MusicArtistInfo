@@ -148,11 +148,17 @@ sub retrieve {
 sub _retrieve {
     my ($class,$d) = @_;
     return _failure('source_mismatch') unless _same_file($d);
+    # Reject oversized recorded sources before native acquisition. External
+    # size comes from stat; embedded length is the committed cover value.
+    # Selection recognizes unsupported_source as a skippable source.
+    return _failure('unsupported_source') if $d->{source_kind} eq 'external'
+        && $d->{file_identity}[2]>4*1024*1024;
     require Slim::Music::Artwork;
     my ($bytes,$type);
     if ($d->{source_kind} eq 'embedded') {
         return _failure('invalid_identity') unless ($d->{audio_type}//'') =~ /\A[a-z0-9]+\z/
             && ($d->{cover_length}//'') =~ /\A[1-9][0-9]*\z/;
+        return _failure('unsupported_source') if $d->{cover_length}>4*1024*1024;
         require Slim::Formats;
         my $format = Slim::Formats->classForFormat($d->{audio_type});
         return _failure('unsupported_source') unless $format;
