@@ -40,9 +40,13 @@ sub launch {
             # Close inherited native DB/socket descriptors, even if their
             # close-on-exec flags were not set. Linux procfs is required.
             opendir my $dh, '/proc/self/fd' or die "fd inventory: $!";
-            my @fds = grep { /\A[0-9]+\z/ && $_ > 2 } readdir $dh;
+            my $inventory_fd=fileno($dh);
+            my @fds = grep { /\A[0-9]+\z/ && $_ > 2 && $_ != $inventory_fd } readdir $dh;
             closedir $dh or die "fd inventory close: $!";
-            POSIX::close($_) for @fds;
+            for my $fd (@fds) {
+                my $rc=POSIX::close($fd);
+                die "close inherited descriptor: $!" unless defined($rc) && $rc==0;
+            }
             exec {$argv->[0]} @$argv;
         };
         POSIX::_exit(126);
