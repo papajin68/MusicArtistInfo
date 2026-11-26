@@ -2,14 +2,16 @@ use strict;
 use warnings;
 use Test::More;
 use FindBin;
+use File::Temp qw(tempfile);
 require "$FindBin::Bin/../Mosaicly/ArtworkResolver.pm";
 
 # Mock only the native boundary. No LMS bootstrap or real DB is involved.
 our (%state, @calls);
-BEGIN { $INC{'Slim/Schema.pm'} = __FILE__; $INC{'Slim/Music/Artwork.pm'} = __FILE__; }
+BEGIN { $INC{'Slim/Schema.pm'} = __FILE__; $INC{'Slim/Music/Artwork.pm'} = __FILE__; $INC{'Slim/Formats.pm'} = __FILE__; }
 {
     package Slim::Schema;
     sub dbh { bless {}, 'MockDB' }
+    sub contentType { 'flc' }
     sub rs { die 'wrong resultset' unless $_[1] eq 'Track'; bless {}, 'MockRS' }
     package MockDB;
     sub selectrow_arrayref {
@@ -36,7 +38,17 @@ BEGIN { $INC{'Slim/Schema.pm'} = __FILE__; $INC{'Slim/Music/Artwork.pm'} = __FIL
     sub coverid { die 'must not call mutating coverid getter' }
     sub coverArt { die 'must not call discovery' }
     sub update { die 'must not update database' }
+    package Slim::Formats;
+    sub classForFormat { $_[1] eq 'flc' ? 'MockFormat' : undef }
+    sub loadTagFormatForType { 1 }
+    package MockFormat;
+    sub getCoverArt {
+        push @main::calls, ['format', $_[1]];
+        die 'native extraction failed' if $main::state{throw};
+        return $main::state{embedded}[0];
+    }
     package Slim::Music::Artwork;
+    sub _imageContentType { $main::state{embedded}[1] }
     sub _readCoverArtTags {
         push @main::calls, ['embedded', $_[2]];
         die 'native extraction failed' if $main::state{throw};
@@ -100,4 +112,37 @@ reset_state(); $state{row}[1]='https://remote/image.jpg'; failure('unsupported_s
 reset_state(); $state{track}{remote}=1; failure('unsupported_source','remote track object');
 reset_state(); $state{track}{audio}=0; failure('unsupported_source','non-audio track');
 reset_state(); my $first=resolve(); is_deeply(resolve(),$first,'repeated calls deterministic');
+
+# Descriptor acquisition uses real file identity and stubbed native reads.
+# Run on Windows too; normalize the mock path requirement for retrieval tests
+# by using a POSIX-shaped absolute path only when the platform provides one.
+# The worker itself targets Linux.
+SKIP: {
+    skip 'Linux descriptor paths required', 11 if $^O eq 'MSWin32';
+    my ($fh,$file)=tempfile(UNLINK=>1);
+    binmode $fh;
+    print {$fh} 'fixture';
+    close $fh or die $!;
+    reset_state();
+    $state{track}{path}=$file;
+    my $d=$class->describe(album_id=>1564,artwork_id=>$art);
+    ok($d->{ok},'embedded description');
+    is($d->{audio_type},'flc','native audio type captured');
+    is($d->{cover_length},4,'recorded embedded size');
+    is_deeply(native_calls(),[],'description never acquires artwork');
+    is_deeply($class->retrieve($d),resolve(),'descriptor embedded parity');
+    $state{embedded}=['ABCDE','image/jpeg',5];
+    is($class->retrieve($d)->{reason},'source_mismatch','embedded length mismatch');
+    reset_state();
+    $state{row}[1]=$file;
+    $d=$class->describe(album_id=>1564,artwork_id=>$art);
+    ok($d->{ok},'external description');
+    is($d->{source_kind},'external','external source kind');
+    is_deeply($class->retrieve($d),resolve(),'descriptor external parity');
+    is($class->retrieve({%$d,file_identity=>[]})->{reason},'invalid_identity','invalid file identity rejected');
+    open my $changed,'>>:raw',$file or die $!;
+    print {$changed} 'changed';
+    close $changed or die $!;
+    is($class->retrieve($d)->{reason},'source_mismatch','changed file rejected');
+}
 done_testing();
