@@ -30,6 +30,7 @@ close $f;
 my $job=JSON::PP->new->utf8->decode($raw);
 my $mode=$job->{diagnostics}{mode};
 exit 4 if $mode eq 'exit';
+exit 137 if $mode eq 'ambiguous';
 exit 0 if $mode eq 'missing';
 # Synthetic JPEG envelope only: this test exercises transport validation,
 # not image decoding or native rendering.
@@ -93,4 +94,9 @@ is($c->start($big)->{reason},'invalid_job','oversized job refused');
 mkdir "$root/active",0700 or die $!;
 is($c->start(job('valid'))->{reason},'busy','stale directory blocks admission');
 rmdir "$root/active" or die $!;
+ok($c->start(job('ambiguous'))->{ok},'launch ambiguous wrapper status');
+$r=finish();
+is($r->{reason},'termination_unverified','ambiguous status fails closed');
+ok($c->busy,'ambiguous status retains reservation');
+is($c->start(job('valid'))->{reason},'busy','no overlapping worker after ambiguous termination');
 done_testing;
