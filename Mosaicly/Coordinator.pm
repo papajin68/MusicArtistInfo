@@ -2,7 +2,7 @@ package Plugins::MusicArtistInfo::Mosaicly::Coordinator;
 
 use strict;
 use warnings;
-use Fcntl qw(O_WRONLY O_CREAT O_EXCL O_RDONLY O_NOFOLLOW);
+use Fcntl qw(O_WRONLY O_CREAT O_EXCL O_RDONLY O_NOFOLLOW O_NONBLOCK);
 use File::Path qw(remove_tree);
 use Cwd qw(abs_path);
 use JSON::PP;
@@ -55,7 +55,7 @@ sub _write_job {
 
 sub _read_bounded {
     my ($path,$limit)=@_;
-    sysopen my $fh,$path,O_RDONLY|O_NOFOLLOW or die "open output: $!";
+    sysopen my $fh,$path,O_RDONLY|O_NOFOLLOW|O_NONBLOCK or die "open output: $!";
     binmode $fh or die "binmode: $!";
     my @st=stat($fh);
     die 'invalid output file' unless @st && -f _ && $st[4]==$>
@@ -86,14 +86,18 @@ sub start {
     my ($self,$job)=@_;
     return _fail('busy') if $self->busy;
     return _fail('invalid_job') unless ref($job) eq 'HASH'
-        && ($job->{ok}//0) eq '1' && ($job->{contributor_id}//'') =~ /\A[1-9][0-9]*\z/
+        && ($job->{ok}//0) eq '1' && !ref($job->{contributor_id}) && ($job->{contributor_id}//'') =~ /\A[1-9][0-9]*\z/
         && ref($job->{entries}) eq 'ARRAY' && @{$job->{entries}}<=32
         && ref($job->{diagnostics}) eq 'HASH';
     my $bytes=eval {$json->encode($job)};
     return _fail('invalid_job') if $@ || !defined($bytes) || length($bytes)>262144;
     return _fail('reservation_failed') unless mkdir($self->{dir},0700);
+    my $written=eval { _write_job("$self->{dir}/job.json",$bytes); 1 };
+    if (!$written) {
+        return _fail('cleanup_failed') unless $self->_cleanup;
+        return _fail('job_write_failed');
+    }
     my $r=eval {
-        _write_job("$self->{dir}/job.json",$bytes);
         $process->launch(
             directory=>$self->{dir},log=>"$self->{dir}/worker.log",
             argv=>[
@@ -166,8 +170,13 @@ sub poll {
         # new jobs pending explicit recovery; never publish its result.
         return {state=>'complete',ok=>0,reason=>'termination_unverified',process=>$p};
     }
-    my $out=$p->{exit_code}==0 ? eval {$self->_validate($a)} : _fail('worker_exit');
-    $out=_fail('invalid_result') unless $out && !$@;
+    my $out;
+    if ($p->{exit_code}==0) {
+        $out=eval {$self->_validate($a)};
+        $out=_fail('invalid_result') if $@ || !$out;
+    } else {
+        $out=_fail('worker_exit');
+    }
     return {state=>'complete',ok=>0,reason=>'cleanup_failed',process=>$p}
         unless $self->_cleanup;
     return {state=>'complete',%$out,process=>$p};
