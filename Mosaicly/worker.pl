@@ -95,6 +95,20 @@ our $cachedir="$dir/runtime/cache";
 
 # Caller supplies the installed LMS Perl include paths (including plugin
 # parent and native CPAN paths). Use the real bootstrap, not scanner.pl.
+# No database connection is legitimate in descriptor-only generation.
+# Install the guard before native bootstrap can load schema dependencies.
+require DBI;
+my $db_attempted = 0;
+{
+    no warnings 'redefine';
+    *DBI::connect = sub { $db_attempted = 1; die "worker database connection forbidden\n" };
+    *DBI::connect_cached = sub { $db_attempted = 1; die "worker database connection forbidden\n" };
+}
+$ENV{LC_ALL} = 'C.utf8';
+$ENV{LANG} = 'C.utf8';
+require POSIX;
+defined POSIX::setlocale(POSIX::LC_ALL(), 'C.utf8')
+    or die "worker UTF-8 locale unavailable\n";
 require Slim::Utils::OSDetect;
 Slim::Utils::OSDetect::init($lib);
 require Slim::bootstrap;
@@ -134,6 +148,8 @@ require Plugins::MusicArtistInfo::Mosaicly::Generator;
 my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
     bounded_worker_progressive=>1);
+die 'worker attempted database connection' if $db_attempted;
+die 'unexpected initialized library after generation' if Slim::Schema->hasLibrary();
 die 'invalid generator result' unless ref($r) eq 'HASH';
 if ($r->{ok}) {
     my $jpeg=delete $r->{bytes};
