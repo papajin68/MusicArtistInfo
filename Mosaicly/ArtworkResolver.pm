@@ -173,6 +173,8 @@ sub _retrieve {
         return _failure('source_unavailable') unless defined($bytes) && length($bytes);
     }
     return _failure('source_mismatch') unless _same_file($d);
+    # Enforce the actual acquired size before Selection hashes the bytes.
+    return _failure('unsupported_source') if length($bytes)>4*1024*1024;
     return _failure('native_error') unless defined($type) && length($type);
     return {ok=>1, (map {$_=>$d->{$_}} qw(album_id artwork_id track_id source_kind)),
         bytes=>$bytes, content_type=>$type};
