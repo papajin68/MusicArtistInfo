@@ -98,6 +98,51 @@ sub candidate {
     $discover_error='contributor_not_found';
     is($g->generate(contributor_id=>7)->{reason},'contributor_not_found','discovery failure propagated');
     $discover_error=undef;
+    # New server-to-worker boundary: describe metadata in the server,
+    # then execute only the captured descriptors inside the worker.
+    {
+        my @described;
+        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::describe = sub {
+            my ($class,%a)=@_;
+            push @described,$a{album_id};
+            return {ok=>0,reason=>'source_unavailable'} if $a{album_id}==1;
+            return {ok=>1,%a,track_id=>$a{album_id},source_kind=>'external',
+                path=>"/music/$a{album_id}.jpg",file_identity=>[1,2,3,4,5]};
+        };
+        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::retrieve = sub {
+            my ($class,$d)=@_;
+            push @retrieved,$d->{album_id};
+            return {ok=>1,(map {$_=>$d->{$_}} qw(album_id artwork_id track_id source_kind)),
+                content_type=>'image/jpeg',bytes=>"cover$d->{album_id}"};
+        };
+        @candidates=map {candidate($_)} reverse 1..40;
+        @retrieved=@prepared=@rendered=();
+        my $job;
+        {
+            local *Plugins::MusicArtistInfo::Mosaicly::Generator::_contained = sub {0};
+            $job=$g->prepare_job(contributor_id=>7);
+        }
+        ok($job->{ok},'metadata preparation does not require worker limits');
+        is_deeply(\@described,[1..32],'ranked descriptor budget');
+        is(scalar @retrieved,0,'server preparation does not acquire art');
+        is(scalar @prepared,0,'server preparation does not decode art');
+        is($job->{diagnostics}{candidate_budget_omitted},8,'job records budget omissions');
+        local *Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates::discover = sub {die 'worker must not discover'};
+        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::resolve = sub {die 'worker must not resolve from DB'};
+        my $result=$g->generate(contributor_id=>7,job=>$job);
+        ok($result->{ok},'descriptor worker generation');
+        is_deeply(\@retrieved,[2,3,4,5],'skip unavailable and stop after four');
+        is_deeply([map {$_->{album_id}} @{$result->{sources}}],[2,3,4,5],
+            'selected descriptors retain correct identity');
+        is($g->generate(contributor_id=>8,job=>$job)->{reason},'invalid_job','wrong contributor rejected');
+        my $wrong={%$job,entries=>[{%{$job->{entries}[1]},source=>{%{$job->{entries}[1]{source}},album_id=>99}}]};
+        is($g->generate(contributor_id=>7,job=>$wrong)->{reason},'invalid_job','wrong source identity rejected');
+        my $fatal={%$job,entries=>[{%{$job->{entries}[0]},source=>{ok=>0,reason=>'artwork_changed'}}]};
+        is($g->generate(contributor_id=>7,job=>$fatal)->{reason},'artwork_changed','stale descriptor fails closed');
+        my $oversized={%$job,entries=>[ @{$job->{entries}},$job->{entries}[0] ]};
+        is($g->generate(contributor_id=>7,job=>$oversized)->{reason},'invalid_job','over-budget job rejected');
+    }
+
     $render_error=1;
     is($g->generate(contributor_id=>7)->{reason},'generation_exception','render exception contained');
 }
