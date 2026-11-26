@@ -1,6 +1,10 @@
 use strict;
 use warnings;
 use Test::More;
+BEGIN {
+    plan skip_all => 'Linux publication filesystem semantics required'
+        unless $^O eq 'linux';
+}
 use FindBin;
 use File::Temp qw(tempdir);
 use Cwd qw(abs_path);
