@@ -117,6 +117,19 @@ Slim::Utils::Prefs::preferences('server')->init({userDefinedRoles=>{}});
 # Contributor relationship definitions also need the native SQL collation
 # helper. Loading the class does not initialize or connect to the database.
 require Slim::Utils::SQLiteHelper;
+# Populate the real locale map via the native strings parser. Only locale
+# metadata is needed by Contributor's relationship definitions; do not
+# initialize plugins, load live caches or retain translated strings.
+require Slim::Utils::Strings;
+my $strings = File::Spec->catfile(
+    Slim::Utils::OSDetect::dirsFor('strings'), 'strings.txt');
+die 'native strings file unavailable' unless -f $strings && -r $strings;
+Slim::Utils::Strings::loadFile($strings, {storeString=>sub {}});
+die 'native locale map unavailable'
+    unless ref(Slim::Utils::Strings::getLocales()) eq 'HASH'
+        && keys %{Slim::Utils::Strings::getLocales()};
+require Slim::Schema;
+die 'unexpected initialized library' if Slim::Schema->hasLibrary();
 require Plugins::MusicArtistInfo::Mosaicly::Generator;
 my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
