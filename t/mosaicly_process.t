@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+BEGIN { plan skip_all=>'Linux process adapter' unless $^O eq 'linux' }
 use File::Temp qw(tempdir);
 use File::Path qw(make_path);
 use File::Spec;
