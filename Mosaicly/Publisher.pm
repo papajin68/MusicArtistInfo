@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Cwd qw(abs_path);
 use File::Temp qw(tempfile);
-use Fcntl qw(O_RDONLY O_NOFOLLOW O_NONBLOCK);
+use Fcntl qw(O_RDONLY O_NOFOLLOW O_NONBLOCK O_WRONLY O_CREAT O_EXCL);
 use Digest::SHA qw(sha256_hex);
 use JSON::PP;
 
@@ -155,12 +155,16 @@ sub _publish {
     if (defined($row->{portrait}) || defined($row->{portraitid})) {
         return _fail('already_assigned');
     }
-    return _fail('publication_pending') if $self->{pending};
+    return _fail('publication_pending') if -e "$self->{root}/.pending" || -l "$self->{root}/.pending";
     return _fail('local_artwork') if _local($id,$name);
     return _fail('stale_sources') unless _sources_current($id,$job,$result);
     return _fail('stale_job') unless $self->{current}->();
     # Retain a fail-closed reservation if publication or registration is ambiguous.
-    $self->{pending}=$path;
+    # Persistent single reservation: a crash cannot allow repeated orphan creation.
+    sysopen my $reservation,"$self->{root}/.pending",O_WRONLY|O_CREAT|O_EXCL,0600
+        or return _fail('publication_pending');
+    print {$reservation} "$id $result->{jpeg_sha256}\n" or die 'reservation write';
+    close $reservation or die 'reservation close';
     return _fail('file_publication_failed') unless _publish_file($self->{root},$path,$bytes);
     my $portraitid=Slim::Music::Artwork->generateImageId($url);
     return _fail('invalid_portrait_id') unless defined($portraitid)
@@ -177,7 +181,7 @@ sub _publish {
         undef,$url,$portraitid,$id,$name);
     die 'registration failed' unless defined($n) && !$dbh->err;
     return _fail('association_changed') unless $n==1;
-    delete $self->{pending};
+    unlink "$self->{root}/.pending" or return _fail('reservation_cleanup_failed');
     return {ok=>1,contributor_id=>$id,portrait=>$url,portraitid=>$portraitid};
 }
 
