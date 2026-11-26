@@ -164,8 +164,9 @@ sub poll {
     my $p=$a->{process}->poll;
     return $p if $p->{state} eq 'running' || $p->{state} eq 'unresolved';
     delete $self->{active};
-    if ($p->{state} ne 'exited') {
-        # A killed or externally reaped timeout wrapper is not evidence
+    if ($p->{state} ne 'exited' || !defined($p->{exit_code}) || $p->{exit_code}>=124) {
+        # A killed or externally reaped timeout wrapper, or an ambiguous
+        # reserved timeout/exec/signal exit code, is not evidence
         # that its descendant is gone. Retain the directory and block
         # new jobs pending explicit recovery; never publish its result.
         return {state=>'complete',ok=>0,reason=>'termination_unverified',process=>$p};
