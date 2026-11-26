@@ -99,6 +99,14 @@ require Slim::Utils::OSDetect;
 Slim::Utils::OSDetect::init($lib);
 require Slim::bootstrap;
 Slim::bootstrap->loadModules([qw(version Time::HiRes DBI HTML::Parser XML::Parser::Expat YAML::XS)], [], $lib);
+# Initialize actual native logging before artwork modules can report errors.
+# Explicit config path avoids falling back to the installed server's prefs.
+require Slim::Utils::Log;
+Slim::Utils::Log->init({
+    logdir=>$logdir,
+    logconf=>"$dir/runtime/prefs/log.conf",
+    logtype=>'scanner',
+});
 require Plugins::MusicArtistInfo::Mosaicly::Generator;
 my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
