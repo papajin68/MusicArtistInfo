@@ -107,6 +107,13 @@ Slim::Utils::Log->init({
     logconf=>"$dir/runtime/prefs/log.conf",
     logtype=>'scanner',
 });
+# Contributor initializes its role map at load time, even for tag-only
+# extraction. Seed the native default in the private preferences namespace;
+# do not initialize the full server preferences or schema.
+require Slim::Utils::Prefs;
+die 'preferences directory escaped worker runtime'
+    unless abs_path(Slim::Utils::Prefs::dir()) eq "$dir/runtime/prefs";
+Slim::Utils::Prefs::preferences('server')->init({userDefinedRoles=>{}});
 require Plugins::MusicArtistInfo::Mosaicly::Generator;
 my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
