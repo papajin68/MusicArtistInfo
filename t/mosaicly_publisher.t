@@ -110,5 +110,29 @@ my ($db,$current,$local,$sources);
     close $same;
     chmod 0600,$path or die $!;
     ok($p->publish(identity=>$identity,output=>$out)->{ok},'complete identical orphan reusable');
+
+    # Exercise actual mode checks, including ACL-projected owner execute.
+    for my $mode (0600,0700,0400,0640,0604,0770,0644,04700,02700,01700) {
+        ($p,$root)=fixture();
+        $path="$root/1-$result->{jpeg_sha256}.jpg";
+        open my $modefh,'>:raw',$path or die $!;
+        print {$modefh} $bytes or die $!;
+        close $modefh or die $!;
+        chmod $mode,$path or die $!;
+        open $modefh,'<:raw',$path or die $!;
+        my $accepted=$mode==0600 || $mode==0700;
+        is(!!Plugins::MusicArtistInfo::Mosaicly::Publisher::_private_regular_file($modefh),
+            !!$accepted,sprintf('regular file mode %04o policy',$mode));
+        close $modefh or die $!;
+        my $published=$p->publish(identity=>$identity,output=>$out);
+        is($published->{ok}?1:0,$accepted?1:0,
+            sprintf('orphan mode %04o publication policy',$mode));
+    }
+    ($p,$root)=fixture();
+    opendir my $dirfh,$root or die $!;
+    ok(!Plugins::MusicArtistInfo::Mosaicly::Publisher::_private_regular_file($dirfh),
+        'directory is not a private regular file');
+    closedir $dirfh;
+
 }
 done_testing;
