@@ -36,7 +36,7 @@ sub new {
         && !grep { !defined($_) || ref($_) || !m{\A/} || /\0/ || !-d $_ } @$includes;
     return bless {
         dir=>"$root/active", library=>$lib, worker=>$script,
-        includes=>[@$includes], perl=>$perl,
+        includes=>[@$includes], perl=>$perl, ev=>$args{ev},
     },$class;
 }
 
@@ -48,6 +48,8 @@ sub busy {
 sub _write_job {
     my ($path,$bytes)=@_;
     sysopen my $fh,$path,O_WRONLY|O_CREAT|O_EXCL,0600 or die "create job: $!";
+    chmod 0600,$path or die 'job chmod';
+    die 'job permissions' unless ((stat($fh))[2]&0777)==0600;
     binmode $fh or die "binmode: $!";
     print {$fh} $bytes or die "write job: $!";
     close $fh or die "close job: $!";
@@ -92,14 +94,17 @@ sub start {
     my $bytes=eval {$json->encode($job)};
     return _fail('invalid_job') if $@ || !defined($bytes) || length($bytes)>262144;
     return _fail('reservation_failed') unless mkdir($self->{dir},0700);
-    my $written=eval { _write_job("$self->{dir}/job.json",$bytes); 1 };
+    my $written=eval {
+        chmod 0700,$self->{dir} or die 'job directory chmod';
+        die 'job directory permissions' unless ((stat($self->{dir}))[2]&0777)==0700;
+        _write_job("$self->{dir}/job.json",$bytes); 1 };
     if (!$written) {
         return _fail('cleanup_failed') unless $self->_cleanup;
         return _fail('job_write_failed');
     }
     my $r=eval {
         $process->launch(
-            directory=>$self->{dir},log=>"$self->{dir}/worker.log",
+            ev=>$self->{ev},directory=>$self->{dir},log=>"$self->{dir}/worker.log",
             argv=>[
                 '/usr/bin/timeout','-k','5s','60s',
                 '/usr/bin/prlimit','--as=268435456','--core=0',
