@@ -1,6 +1,7 @@
 package Plugins::MusicArtistInfo::API;
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
 use Digest::SHA1 qw(sha1_base64);
 use URI;
 use URI::Escape qw(uri_escape_utf8);
@@ -38,7 +39,7 @@ my %queryQueue;
 if (!main::SCANNER) {
 	$prefs->setChange(sub { _initXMAICfgString(1) },
 		'browseArtistPictures',
-		'lookupArtistPictures',
+		'artistPortraitSource',
 		'lookupAlbumArtistPicturesOnly',
 		'artistImageFolder',
 		'saveMissingArtistPicturePlaceholder'
@@ -354,7 +355,7 @@ sub _initXMAICfgString {
 		$version,
 		main::SCANNER ? 1 : 0,
 		$prefs->get('browseArtistPictures') ? 1 : 0,
-		$prefs->get('lookupArtistPictures') ? 1 : 0,
+		onlineEnabled($prefs) ? 1 : 0,
 		$prefs->get('lookupAlbumArtistPicturesOnly') ? 1 : 0,
 		$prefs->get('artistImageFolder') ? 1 : 0,
 		$serverPrefs->get('precacheArtwork') ? 1 : 0,

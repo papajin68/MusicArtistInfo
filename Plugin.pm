@@ -1,6 +1,7 @@
 package Plugins::MusicArtistInfo::Plugin;
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(initSource);
 use base qw(Slim::Plugin::Base);
 
 use Slim::Utils::Log;
@@ -45,11 +46,12 @@ sub initPlugin {
 	$prefs->init({
 		browseArtistPictures => 1,
 		runImporter => 1,
-		lookupArtistPictures => 1,
 		lookupCoverArt => 1,
 		lookupAlbumArtistPicturesOnly => 1,
 		useAIGeneratedContent => 1,
 	});
+
+	initSource($prefs);
 
 	$prefs->setChange(\&webPages, 'hidextramenusitems');
 

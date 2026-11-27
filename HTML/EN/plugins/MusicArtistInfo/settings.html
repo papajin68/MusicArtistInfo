@@ -26,10 +26,14 @@
 			<label for="pref_lookupCoverArt" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_IMPORTER_COVERART" | string %]</label>
 		[% END %]
 
-		[% IF !noImageProxy; WRAPPER settingGroup title="" desc="PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE_DESC" %]
-			<input type="checkbox" [% IF prefs.pref_lookupArtistPictures %]checked [% END %] class="stdedit" name="pref_lookupArtistPictures" id="pref_lookupArtistPictures" value="1" />
-			<label for="pref_lookupArtistPictures" class="stdlabel">[% "PLUGIN_MUSICARTISTINFO_IMPORTER_PRECACHE" | string %]</label>
-			[% IF prefs.pref_lookupArtistPictures && !prefs.pref_artistImageFolder %]
+		[% IF !noImageProxy; WRAPPER settingGroup title="PLUGIN_MUSICARTISTINFO_PORTRAIT_SOURCE" desc="PLUGIN_MUSICARTISTINFO_PORTRAIT_SOURCE_DESC" %]
+			<select class="stdedit" name="pref_artistPortraitSource" id="pref_artistPortraitSource">
+				<option value="online" [% IF prefs.pref_artistPortraitSource == 'online' %]selected="selected" [% END %]>[% "PLUGIN_MUSICARTISTINFO_PORTRAIT_ONLINE" | string %]</option>
+				<option value="mosaicly" [% IF prefs.pref_artistPortraitSource == 'mosaicly' %]selected="selected" [% END %]>[% "PLUGIN_MUSICARTISTINFO_PORTRAIT_MOSAICLY" | string %]</option>
+				<option value="none" [% IF prefs.pref_artistPortraitSource == 'none' %]selected="selected" [% END %]>[% "PLUGIN_MUSICARTISTINFO_PORTRAIT_NONE" | string %]</option>
+			</select>
+			<div>[% "PLUGIN_MUSICARTISTINFO_PORTRAIT_PENDING" | string %]</div>
+			[% IF prefs.pref_artistPortraitSource == 'online' && !prefs.pref_artistImageFolder %]
 				<div style="color:red">[% "PLUGIN_MUSICARTISTINFO_ARTISTPHOTOS_FOLDER_MISSING" | string %]</div>
 			[% END %]
 		[% END; END %]

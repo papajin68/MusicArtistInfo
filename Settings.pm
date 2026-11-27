@@ -1,6 +1,7 @@
 package Plugins::MusicArtistInfo::Settings;
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(source validSource);
 use base qw(Slim::Web::Settings);
 
 use Slim::Utils::Prefs;
@@ -15,7 +16,7 @@ sub name {
 }
 
 sub prefs {
-	my @prefs = ($prefs, qw(runImporter lookupArtistPictures lookupCoverArt reviewFolder artistImageFolder lyricsFolder bioFolder
+	my @prefs = ($prefs, qw(runImporter artistPortraitSource lookupCoverArt reviewFolder artistImageFolder lyricsFolder bioFolder
 		lookupAlbumArtistPicturesOnly saveMissingArtistPicturePlaceholder replaceOnlineGenres useAIGeneratedContent preferredLanguage
 		hidextramenusitems));
 
@@ -38,6 +39,10 @@ sub handler {
 	# artfolder is a server setting - need to handle it manually
 	if ($paramRef->{'saveSettings'}) {
 		$serverprefs->set('artfolder', $paramRef->{artfolder});
+
+		# Missing or invalid submissions retain the effective source.
+		$paramRef->{pref_artistPortraitSource} = source($prefs)
+			unless validSource($paramRef->{pref_artistPortraitSource});
 
 		# XXX - what's wrong here? We should not need to do this!
 		my (undef, @prefs) = $class->prefs();

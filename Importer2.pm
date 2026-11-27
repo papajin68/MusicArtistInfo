@@ -1,6 +1,7 @@
 package Plugins::MusicArtistInfo::Importer2;
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
 use Digest::MD5;
 use File::Spec::Functions qw(catdir);
 use File::Slurp;
@@ -34,6 +35,7 @@ my ($i, $ua, $cachedir, $imgProxyCache, $specs, $testSpec, $max, $precacheArtwor
 
 sub startScan {
 	my $class = shift;
+	return unless onlineEnabled($prefs);
 
 	Plugins::MusicArtistInfo::Importer->_initCacheFolder(_cacheFolder(), $prefs->get('artistImageFolder'));
 
@@ -73,7 +75,7 @@ sub startScan {
 	}
 
 	# only run scanner if we want to show artist pictures and pre-cache or at least download pictures
-	return unless $prefs->get('browseArtistPictures') && ( $precacheArtwork || $prefs->get('lookupArtistPictures') );
+	return unless $prefs->get('browseArtistPictures') && ( $precacheArtwork || onlineEnabled($prefs) );
 
 	$class->_scanArtistPhotos();
 }
@@ -137,7 +139,7 @@ sub _scanArtistPhotos {
 		});
 	}
 
-	$ua = Plugins::MusicArtistInfo::Common->getUA() if $prefs->get('lookupArtistPictures');
+	$ua = onlineEnabled($prefs) ? Plugins::MusicArtistInfo::Common->getUA() : undef;
 
 	while ( _getArtistPhotoURL({
 		sth      => $sth,
@@ -220,7 +222,7 @@ sub _getArtistPhotoURL {
 			});
 			$done++;
 		}
-		elsif (!$done && $ua) {		# only defined if $prefs->get('lookupArtistPictures')
+		elsif (!$done && $ua) {		# only defined in Online mode
 			Plugins::MusicArtistInfo::API->getArtistPhoto(sub {
 				_precacheArtistImage($artist, @_);
 			}, {

@@ -3,6 +3,7 @@ package Plugins::MusicArtistInfo::Importer;
 # this is a helper class to only load the actual importer if LMS is compatible
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
 
 use Digest::MD5;
 use File::Spec::Functions qw(catdir);
@@ -26,7 +27,15 @@ my $serverprefs = preferences('server');
 sub initPlugin {
 	my $class = shift;
 
-	return unless $prefs->get('runImporter') && ($serverprefs->get('precacheArtwork') || $prefs->get('lookupArtistPictures') || $prefs->get('lookupCoverArt') || $prefs->get('replaceOnlineGenres'));
+	return unless $prefs->get('runImporter');
+
+	# Preserve native local artwork independently of automatic generation.
+	if (CAN_LMS_ARTIST_ARTWORK && (my $artworkFolder = $prefs->get('artistImageFolder'))) {
+		require Slim::Music::ContributorPictureScan;
+		Slim::Music::ContributorPictureScan->addArtworkFolder($artworkFolder);
+	}
+
+	return unless $serverprefs->get('precacheArtwork') || onlineEnabled($prefs) || $prefs->get('lookupCoverArt') || $prefs->get('replaceOnlineGenres');
 
 	Slim::Music::Import->addImporter($class, {
 		'type'         => 'post',
@@ -36,10 +45,6 @@ sub initPlugin {
 
 	$class->_initCacheFolder(_cacheFolder(), $serverprefs->get('artfolder'));
 
-	if (CAN_LMS_ARTIST_ARTWORK && (my $artworkFolder = $prefs->get('artistImageFolder'))) {
-		require Slim::Music::ContributorPictureScan;
-		Slim::Music::ContributorPictureScan->addArtworkFolder($artworkFolder);
-	}
 
 	return 1;
 }
@@ -50,7 +55,7 @@ sub startScan {
 	$class->_scanAlbumCovers();
 	$class->_scanAlbumGenre() if CAN_ONLINE_LIBRARY && $prefs->get('replaceOnlineGenres');
 
-	if (CAN_IMAGEPROXY && $prefs->get('lookupArtistPictures')) {
+	if (CAN_IMAGEPROXY && onlineEnabled($prefs)) {
 		require Plugins::MusicArtistInfo::Importer2;
 		Plugins::MusicArtistInfo::Importer2->startScan(@_);
 	}

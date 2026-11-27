@@ -672,3 +672,22 @@ PLUGIN_MUSICARTISTINFO_INSTRUMENTAL
 	EN	Instrumental
 	NL	Instrumentaal
 	SV	Instrumental
+
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_SOURCE
+	EN	Artist portrait source
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_SOURCE_DESC
+	EN	Choose the source for future automatic library artist portraits. Existing portraits and configured local artwork are retained. Changing the source does not start a scan. To apply the source across the library, use Clear Library and Rescan (behavior pending validation).
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_ONLINE
+	EN	Online artist pictures
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_MOSAICLY
+	EN	Mosaicly (album artwork)
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_NONE
+	EN	None (no automatic generation)
+
+PLUGIN_MUSICARTISTINFO_PORTRAIT_PENDING
+	EN	Mosaicly generation is not yet operational in this development version. Selecting it disables automatic online portraits without generating new ones.

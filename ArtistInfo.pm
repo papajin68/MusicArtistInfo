@@ -1,6 +1,7 @@
 package Plugins::MusicArtistInfo::ArtistInfo;
 
 use strict;
+use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
 use HTTP::Status qw(RC_MOVED_PERMANENTLY);
 
 use Slim::Menu::ArtistInfo;
@@ -897,7 +898,7 @@ sub _artworkUrl {
 	main::INFOLOG && $log->info("Artist ID is '$artist_id', name '$artist', musicbrainz ID '$mbid'");
 
 	# try local artwork first
-	if ( !(main::DEBUGLOG && $onlineLog->is_debug) && (my $local = Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+	if ( (!onlineEnabled($prefs) || !(main::DEBUGLOG && $onlineLog->is_debug)) && (my $local = Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
 		artist    => $artist,
 		artist_id => $artist_id,
 		rawUrl    => 1,
@@ -905,6 +906,11 @@ sub _artworkUrl {
 		main::INFOLOG && $log->info("Found local artwork: $local");
 		return Slim::Utils::Misc::fileURLFromPath($local);
 	}
+
+	# Automatic library artwork fallback respects the source; explicit photo requests do not.
+	return Slim::Utils::Misc::fileURLFromPath(
+		Plugins::MusicArtistInfo::LocalArtwork->defaultArtistPhoto()
+	) unless onlineEnabled($prefs);
 
 	Plugins::MusicArtistInfo::API->getArtistPhoto(sub {
 		my $photo = shift || {};
