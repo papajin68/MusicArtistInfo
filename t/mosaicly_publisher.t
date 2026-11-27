@@ -30,7 +30,12 @@ my $class='Plugins::MusicArtistInfo::Mosaicly::Publisher';
     package Slim::Utils::Misc;
     sub fileURLFromPath { 'file://'.$_[0] }
     package Slim::Music::Artwork;
-    sub generateImageId { 'abcd1234' }
+    sub generateImageId {
+        my ($class,$args)=@_;
+        die 'invalid native image ID arguments' unless ref($args) eq 'HASH'
+            && -f $args->{image} && $args->{url} eq 'file://'.$args->{image};
+        return 'abcd1234';
+    }
 }
 
 my ($db,$current,$local,$sources);
