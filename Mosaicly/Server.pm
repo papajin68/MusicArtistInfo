@@ -5,6 +5,7 @@ use warnings;
 use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use Time::HiRes qw(time);
+use Scalar::Util qw(weaken);
 use Plugins::MusicArtistInfo::Mosaicly::Generator;
 use Plugins::MusicArtistInfo::Mosaicly::Coordinator;
 use Plugins::MusicArtistInfo::Mosaicly::Publisher;
@@ -25,7 +26,7 @@ sub new {
     my $module=abs_path($INC{'Plugins/MusicArtistInfo/Mosaicly/Server.pm'});
     die 'native runtime unavailable' unless $lib && -d $lib && $perl && $module;
     my $worker=dirname($module).'/worker.pl';
-    my $pluginparent=dirname(dirname(dirname($module)));
+    my $pluginparent=dirname(dirname(dirname(dirname($module))));
     my %seen;
     my @includes=grep { !$seen{$_}++ } map { abs_path($_) }
         grep { defined($_) && !ref($_) && m{\A/} && -d $_ }
@@ -35,9 +36,11 @@ sub new {
         root=>$a{jobs},library=>abs_path($lib),worker=>$worker,
         includes=>\@includes,perl=>$perl);
     # Guard is bound to the specific active epoch, not just current idle status.
+    my $owner=$self;
+    weaken($owner);
     $self->{publisher}=Plugins::MusicArtistInfo::Mosaicly::Publisher->new(
         root=>$a{portraits},current=>sub {
-            $self->{active} && $self->{current}->($self->{active}{epoch});
+            $owner && $owner->{active} && $owner->{current}->($owner->{active}{epoch});
         });
     return $self;
 }
