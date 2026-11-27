@@ -83,7 +83,7 @@ SKIP: {
     $r=$run_ev->('exit 7');
     is_deeply($finish_ev->($r->{process}),{state=>'exited',exit_code=>7},
         'EV callback delivers nonzero exit');
-    $r=$run_ev->('kill "KILL", $');
+    $r=$run_ev->('kill "KILL", $$; exit 99');
     is_deeply($finish_ev->($r->{process}),{state=>'signaled',signal=>9},
         'EV callback delivers signal termination');
     $r=$run_ev->('print "executed"');
