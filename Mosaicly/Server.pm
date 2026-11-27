@@ -41,15 +41,21 @@ sub new {
     weaken($owner);
     $self->{publisher}=Plugins::MusicArtistInfo::Mosaicly::Publisher->new(
         root=>$a{portraits},current=>sub {
-            $owner && $owner->{active} && $owner->{current}->($owner->{active}{epoch});
+            $owner && !$owner->{stopped} && $owner->{active} && $owner->{current}->($owner->{active}{epoch});
         });
     return $self;
 }
 
 sub busy { $_[0]{active} || $_[0]{coordinator}->busy }
 
+# Stop admission/publication, but retain the timer and process ownership.
+# A real server exit may prevent further polling; the reservation survives
+# if its storage survives. Never remove it on an unverified shutdown.
+sub shutdown { $_[0]{stopped}=1; return !$_[0]->busy }
+
 sub start {
     my ($self,%a)=@_;
+    return _fail('shutdown') if $self->{stopped};
     return _fail('busy') if $self->busy;
     return _fail('invalid_callback') unless ref($a{done}) eq 'CODE';
     return _fail('stale_job') unless defined($a{epoch}) && $self->{current}->($a{epoch});
@@ -83,7 +89,9 @@ sub _tick {
     }
     my $out=$r;
     if ($r->{state} eq 'complete' && $r->{ok}) {
-        $out=$self->{publisher}->publish(identity=>$a->{identity},output=>$r);
+        $out=$self->{stopped} || !$self->{current}->($a->{epoch})
+            ? _fail('stale_job')
+            : $self->{publisher}->publish(identity=>$a->{identity},output=>$r);
         # Report bounded metadata only, not JPEG bytes or private paths.
         $out->{sources}=$r->{result}{sources} if $out->{ok};
         $out->{jpeg_sha256}=$r->{result}{jpeg_sha256} if $out->{ok};

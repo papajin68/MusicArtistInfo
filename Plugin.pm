@@ -1,7 +1,7 @@
 package Plugins::MusicArtistInfo::Plugin;
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(initSource);
+use Plugins::MusicArtistInfo::PortraitSource qw(initSource source);
 use base qw(Slim::Plugin::Base);
 
 use Slim::Utils::Log;
@@ -10,7 +10,7 @@ use Slim::Utils::Strings qw(string cstring);
 
 use Plugins::MusicArtistInfo::AlbumInfo;
 use Plugins::MusicArtistInfo::ArtistInfo;
-use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY CAN_LMS_WORKS CAN_LMS_CAN_WEBLINK);
+use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY CAN_LMS_WORKS CAN_LMS_CAN_WEBLINK CAN_LMS_ARTIST_ARTWORK);
 use Plugins::MusicArtistInfo::TrackInfo;
 use Plugins::MusicArtistInfo::LocalFile;
 
@@ -37,6 +37,7 @@ Slim::Utils::Log->addLogCategory( {
 my $prefs = preferences('plugin.musicartistinfo');
 
 our $VERSION;
+my $mosaiclyLifecycle;
 
 sub initPlugin {
 	my $class = shift;
@@ -108,6 +109,33 @@ sub initPlugin {
 	$class->SUPER::initPlugin(shift);
 
 	Slim::Utils::Timers::setTimer( 'Plugins::MusicArtistInfo::Common', Time::HiRes::time() + 3 + rand(5), \&Plugins::MusicArtistInfo::Common::updateKillWords );
+}
+
+# Native PluginManager calls this after ordinary plugin initialization.
+sub postinitPlugin {
+    return if main::SCANNER;
+    return if $mosaiclyLifecycle;
+    require Plugins::MusicArtistInfo::Mosaicly::Lifecycle;
+    $mosaiclyLifecycle=Plugins::MusicArtistInfo::Mosaicly::Lifecycle->new(
+        enabled=>sub { source($prefs) eq 'mosaicly' && $prefs->get('runImporter') },
+        report=>sub { $log->warn('Mosaicly unavailable: '.$_[0]) },
+        build=>sub {
+            die 'native artist artwork required' unless CAN_LMS_ARTIST_ARTWORK;
+            die 'unsupported platform' unless $^O eq 'linux';
+            die 'native EV loop unavailable' unless $INC{'EV.pm'};
+            require Plugins::MusicArtistInfo::Mosaicly::Runtime;
+            require Plugins::MusicArtistInfo::Mosaicly::Server;
+            my $paths=Plugins::MusicArtistInfo::Mosaicly::Runtime->paths(
+                cache=>preferences('server')->get('cachedir'));
+            return Plugins::MusicArtistInfo::Mosaicly::Server->new(%$paths,@_);
+        });
+    $prefs->setChange(sub { $mosaiclyLifecycle->refresh },
+        'artistPortraitSource','runImporter');
+    $mosaiclyLifecycle->refresh;
+}
+
+sub shutdownPlugin {
+    $mosaiclyLifecycle->shutdown if $mosaiclyLifecycle;
 }
 
 # don't add this plugin to the Extras menu
