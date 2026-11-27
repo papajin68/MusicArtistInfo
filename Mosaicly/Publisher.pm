@@ -166,7 +166,7 @@ sub _publish {
     print {$reservation} "$id $result->{jpeg_sha256}\n" or die 'reservation write';
     close $reservation or die 'reservation close';
     return _fail('file_publication_failed') unless _publish_file($self->{root},$path,$bytes);
-    my $portraitid=Slim::Music::Artwork->generateImageId($url);
+    my $portraitid=Slim::Music::Artwork->generateImageId({image=>$path,url=>$url});
     return _fail('invalid_portrait_id') unless defined($portraitid)
         && $portraitid =~ /\A[0-9a-f]{8}\z/;
     # Never bind an ID already used for a different URL.
