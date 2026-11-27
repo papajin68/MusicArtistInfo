@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use POSIX qw(WNOHANG WIFEXITED WEXITSTATUS WIFSIGNALED WTERMSIG);
 use Errno qw(EINTR ECHILD);
+use Fcntl qw(O_RDONLY O_WRONLY O_CREAT O_EXCL);
 use Scalar::Util qw(weaken);
 
 # Narrow adapter for the Linux MVP. No global signal handlers, generic
@@ -32,18 +33,30 @@ sub launch {
     my $pid = fork();
     return {ok=>0,reason=>'fork_failed'} unless defined $pid;
     if (!$pid) {
-        # Never run inherited server END blocks or object destructors.
+        # LMS ties STDERR to its logger. Do not reopen or write through
+        # inherited Perl standard handles. Use fresh handles and OS dup2.
+        # Every recoverable child exception must terminate here, never
+        # propagate to the caller's inherited server exception handlers.
+        my $redirected=0;
         eval {
             $SIG{$_} = 'DEFAULT' for qw(INT HUP QUIT TERM PIPE CHLD __WARN__ __DIE__);
             umask 0077;
             chdir $dir or die "chdir: $!";
-            open STDIN, '<', '/dev/null' or die "stdin: $!";
-            require Fcntl;
-            sysopen STDOUT,$log,Fcntl::O_WRONLY()|Fcntl::O_CREAT()|Fcntl::O_EXCL(),0600
+            sysopen my $input,'/dev/null',O_RDONLY or die "stdin: $!";
+            sysopen my $output,$log,O_WRONLY|O_CREAT|O_EXCL,0600
                 or die "log: $!";
-            open STDERR, '>&', \*STDOUT or die "stderr: $!";
             chmod 0600,$log or die "log chmod: $!";
-            die 'log permissions' unless ((stat(STDOUT))[2]&0777)==0600;
+            die 'log permissions' unless ((stat($output))[2]&0777)==0600;
+            my ($in,$out)=(fileno($input),fileno($output));
+            die 'unexpected standard descriptor allocation'
+                unless defined($in) && defined($out) && $in>2 && $out>2;
+            for my $pair ([$in,0],[$out,1],[$out,2]) {
+                my $rc=POSIX::dup2(@$pair);
+                die "redirect descriptor: $!" unless defined($rc) && $rc==$pair->[1];
+            }
+            $redirected=1;
+            close $input or die "close input: $!";
+            close $output or die "close log: $!";
             # Close inherited native DB/socket descriptors, even if their
             # close-on-exec flags were not set. Linux procfs is required.
             opendir my $dh, '/proc/self/fd' or die "fd inventory: $!";
@@ -56,8 +69,15 @@ sub launch {
             }
             exec {$argv->[0]} @$argv;
         };
-        my $error=$@ || 'exec returned';
-        syswrite STDERR, "Mosaicly child setup: $error\n";
+        # Diagnostics are best effort, through the redirected OS descriptor
+        # only. In particular, never call a tied STDERR method after fork.
+        my $error=$@;
+        eval {
+            if ($redirected) {
+                my $message="Mosaicly child setup: ".($error || 'exec returned')."\n";
+                POSIX::write(2,$message,length($message));
+            }
+        };
         POSIX::_exit(126);
     }
     my $self=bless({pid=>$pid,ev=>$ev},$class);
