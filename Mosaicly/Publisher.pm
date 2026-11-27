@@ -85,7 +85,7 @@ sub _matches {
     sysopen my $fh,$path,O_RDONLY|O_NOFOLLOW|O_NONBLOCK or return;
     binmode $fh or return;
     my @st=stat($fh);
-    return unless @st && -f _ && $st[4]==$> && $st[7]==length($bytes);
+    return unless @st && -f _ && $st[4]==$> && ($st[2]&0777)==0600 && $st[7]==length($bytes);
     my $actual='';
     while (length($actual)<=length($bytes)) {
         my $n=read($fh,my $chunk,8192);
@@ -104,6 +104,8 @@ sub _publish_file {
     return _matches($path,$bytes) if -e $path || -l $path;
     my ($fh,$tmp)=tempfile('.publish-XXXXXXXX',DIR=>$root,UNLINK=>0);
     my $ok=eval {
+        chmod 0600,$tmp or die 'portrait chmod';
+        die 'portrait permissions' unless ((stat($fh))[2]&0777)==0600;
         binmode $fh or die 'binmode';
         print {$fh} $bytes or die 'write';
         close $fh or die 'close';
@@ -163,6 +165,8 @@ sub _publish {
     # Persistent single reservation: a crash cannot allow repeated orphan creation.
     sysopen my $reservation,"$self->{root}/.pending",O_WRONLY|O_CREAT|O_EXCL,0600
         or return _fail('publication_pending');
+    chmod 0600,"$self->{root}/.pending" or die 'reservation chmod';
+    die 'reservation permissions' unless ((stat($reservation))[2]&0777)==0600;
     print {$reservation} "$id $result->{jpeg_sha256}\n" or die 'reservation write';
     close $reservation or die 'reservation close';
     return _fail('file_publication_failed') unless _publish_file($self->{root},$path,$bytes);
