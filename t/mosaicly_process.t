@@ -53,4 +53,44 @@ is(terminal($r->{process})->{exit_code},0,'literal argument accepted');
 open my $fh,'<',"$root/$n/worker.log" or die $!;
 is(do {local $/; <$fh>},'literal ; $()','no shell interpretation');
 close $fh;
+# Run after standalone tests: loading EV changes child-reaping ownership.
+SKIP: {
+    skip 'native EV unavailable', 7 unless eval { require EV; 1 };
+    my $run_ev = sub {
+        my ($code)=@_;
+        my $dir=File::Spec->catdir($root,++$n);
+        mkdir $dir or die $!;
+        return $class->launch(argv=>[$^X,'-e',$code],
+            directory=>$dir,log=>"$dir/worker.log",ev=>1);
+    };
+    my $finish_ev = sub {
+        my ($child)=@_;
+        my $deadline=time()+5;
+        while (time()<$deadline) {
+            EV::run(EV::RUN_NOWAIT());
+            my $status=$child->poll;
+            return $status unless $status->{state} eq 'running';
+            sleep 0.02;
+        }
+        die 'EV child status deadline';
+    };
+    $r=$run_ev->('exit 0');
+    ok($r->{ok},'EV child admitted');
+    is($r->{process}->poll->{state},'running','EV mode does not reap directly');
+    is_deeply($finish_ev->($r->{process}),{state=>'exited',exit_code=>0},
+        'EV callback delivers successful termination');
+    is_deeply($r->{process}->poll,{state=>'exited',exit_code=>0},'EV status retained');
+    $r=$run_ev->('exit 7');
+    is_deeply($finish_ev->($r->{process}),{state=>'exited',exit_code=>7},
+        'EV callback delivers nonzero exit');
+    $r=$run_ev->('kill "KILL", $');
+    is_deeply($finish_ev->($r->{process}),{state=>'signaled',signal=>9},
+        'EV callback delivers signal termination');
+    $r=$run_ev->('print "executed"');
+    my $status=$finish_ev->($r->{process});
+    open my $log,'<',"$root/$n/worker.log" or die $!;
+    my $bytes=do {local $/; <$log>};
+    close $log;
+    ok($status->{exit_code}==0 && $bytes eq 'executed','EV launch executes command and captures output');
+}
 done_testing;
