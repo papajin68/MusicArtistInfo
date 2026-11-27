@@ -108,6 +108,7 @@ my ($db,$current,$local,$sources);
     open my $same,'>:raw',$path or die $!;
     print {$same} $bytes;
     close $same;
+    chmod 0600,$path or die $!;
     ok($p->publish(identity=>$identity,output=>$out)->{ok},'complete identical orphan reusable');
 }
 done_testing;
