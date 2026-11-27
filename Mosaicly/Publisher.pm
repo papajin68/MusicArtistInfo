@@ -80,12 +80,23 @@ sub _sources_current {
     return 1;
 }
 
+# Restrictive Unix mode check, not an ACL audit. Some filesystems
+# project inherited ACLs as owner execute even after chmod(0600).
+# Administrator-configured ACLs remain outside this policy.
+sub _private_regular_file {
+    my ($fh)=@_;
+    my @st=stat($fh);
+    return 0 unless @st && -f _ && $st[4]==$>;
+    my $mode=$st[2]&07777;
+    return $mode==0600 || $mode==0700;
+}
+
 sub _matches {
     my ($path,$bytes)=@_;
     sysopen my $fh,$path,O_RDONLY|O_NOFOLLOW|O_NONBLOCK or return;
     binmode $fh or return;
-    my @st=stat($fh);
-    return unless @st && -f _ && $st[4]==$> && ($st[2]&0777)==0600 && $st[7]==length($bytes);
+    return unless _private_regular_file($fh);
+    return unless (stat($fh))[7]==length($bytes);
     my $actual='';
     while (length($actual)<=length($bytes)) {
         my $n=read($fh,my $chunk,8192);
@@ -105,7 +116,7 @@ sub _publish_file {
     my ($fh,$tmp)=tempfile('.publish-XXXXXXXX',DIR=>$root,UNLINK=>0);
     my $ok=eval {
         chmod 0600,$tmp or die 'portrait chmod';
-        die 'portrait permissions' unless ((stat($fh))[2]&0777)==0600;
+        die 'portrait permissions' unless _private_regular_file($fh);
         binmode $fh or die 'binmode';
         print {$fh} $bytes or die 'write';
         close $fh or die 'close';
@@ -166,7 +177,7 @@ sub _publish {
     sysopen my $reservation,"$self->{root}/.pending",O_WRONLY|O_CREAT|O_EXCL,0600
         or return _fail('publication_pending');
     chmod 0600,"$self->{root}/.pending" or die 'reservation chmod';
-    die 'reservation permissions' unless ((stat($reservation))[2]&0777)==0600;
+    die 'reservation permissions' unless _private_regular_file($reservation);
     print {$reservation} "$id $result->{jpeg_sha256}\n" or die 'reservation write';
     close $reservation or die 'reservation close';
     return _fail('file_publication_failed') unless _publish_file($self->{root},$path,$bytes);
