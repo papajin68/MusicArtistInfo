@@ -53,6 +53,53 @@ is(terminal($r->{process})->{exit_code},0,'literal argument accepted');
 open my $fh,'<',"$root/$n/worker.log" or die $!;
 is(do {local $/; <$fh>},'literal ; $()','no shell interpretation');
 close $fh;
+# Reproduce an initialized-server style tied STDERR without invoking LMS.
+# The tie deliberately rejects Perl-level output; OS descriptor redirection
+# must still work. Guard the test runner against an escaping forked child.
+{
+    package MosaiclyTestTrapper;
+    sub TIEHANDLE { bless {},shift }
+    sub FILENO { 2 }
+    sub PRINT { die 'inherited tied PRINT invoked' }
+    sub WRITE { die 'inherited tied WRITE invoked' }
+    sub UNTIE {}
+}
+my $original_pid=$$;
+my $tied_result;
+{
+    local *STDERR;
+    tie *STDERR,'MosaiclyTestTrapper';
+    $tied_result=eval { launch($^X,'-e','$|=1; print STDOUT "out"; print STDERR "err"') };
+    POSIX::_exit(98) if $$ != $original_pid;
+    untie *STDERR;
+}
+ok($tied_result && $tied_result->{ok},'launch with inherited tied STDERR');
+is_deeply(terminal($tied_result->{process}),{state=>'exited',exit_code=>0},
+    'tied STDERR does not prevent exec');
+open my $tied_log,'<',"$root/$n/worker.log" or die $!;
+is(do {local $/; <$tied_log>},'outerr','both OS streams captured');
+close $tied_log;
+
+# Existing log passes parent validation but fails exclusive open after fork.
+my $failure_dir=File::Spec->catdir($root,++$n);
+mkdir $failure_dir or die $!;
+open my $existing,'>',"$failure_dir/worker.log" or die $!;
+print {$existing} 'preserved';
+close $existing;
+{
+    local *STDERR;
+    tie *STDERR,'MosaiclyTestTrapper';
+    $r=eval { $class->launch(argv=>[$^X,'-e','exit 99'],
+        directory=>$failure_dir,log=>"$failure_dir/worker.log") };
+    POSIX::_exit(98) if $$ != $original_pid;
+    untie *STDERR;
+}
+ok($r && $r->{ok},'deliberate child setup failure admitted by parent');
+is_deeply(terminal($r->{process}),{state=>'exited',exit_code=>126},
+    'child setup failure terminates without unwinding');
+open my $preserved,'<',"$failure_dir/worker.log" or die $!;
+is(do {local $/; <$preserved>},'preserved','exclusive log remains unchanged');
+close $preserved;
 # Run after standalone tests: loading EV changes child-reaping ownership.
 SKIP: {
     skip 'native EV unavailable', 7 unless eval { require EV; 1 };
