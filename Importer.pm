@@ -27,6 +27,14 @@ my $serverprefs = preferences('server');
 sub initPlugin {
 	my $class = shift;
 
+	if (main::SCANNER && exists $ENV{MOSAICLY_SESSION_V2}) {
+		eval {
+			require Plugins::MusicArtistInfo::Mosaicly::ScanClient;
+			Plugins::MusicArtistInfo::Mosaicly::ScanClient::init();
+		};
+		delete $ENV{MOSAICLY_SESSION_V2};
+	}
+
 	return unless $prefs->get('runImporter');
 
 	# Preserve native local artwork independently of automatic generation.
@@ -47,6 +55,11 @@ sub initPlugin {
 
 
 	return 1;
+}
+
+sub shutdownPlugin {
+	Plugins::MusicArtistInfo::Mosaicly::ScanClient::shutdown()
+		if main::SCANNER && $INC{'Plugins/MusicArtistInfo/Mosaicly/ScanClient.pm'};
 }
 
 sub startScan {

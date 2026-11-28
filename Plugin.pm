@@ -37,7 +37,7 @@ Slim::Utils::Log->addLogCategory( {
 my $prefs = preferences('plugin.musicartistinfo');
 
 our $VERSION;
-my $mosaiclyLifecycle;
+my ($mosaiclyLifecycle,$mosaiclyScanner);
 
 sub initPlugin {
 	my $class = shift;
@@ -129,12 +129,28 @@ sub postinitPlugin {
                 cache=>preferences('server')->get('cachedir'));
             return Plugins::MusicArtistInfo::Mosaicly::Server->new(%$paths,@_);
         });
-    $prefs->setChange(sub { $mosaiclyLifecycle->refresh },
+    if ($^O eq 'linux' && CAN_LMS_ARTIST_ARTWORK) {
+        eval {
+            require Plugins::MusicArtistInfo::Mosaicly::ScanAdapter;
+            $mosaiclyScanner=Plugins::MusicArtistInfo::Mosaicly::ScanAdapter->install(
+                enabled=>sub { source($prefs) eq 'mosaicly' && $prefs->get('runImporter') && $mosaiclyLifecycle->server },
+                invalidate=>sub { $mosaiclyLifecycle->refresh },
+                # Scheduler integration deliberately deferred; no generation here.
+                completed=>sub { $log->warn('Mosaicly authenticated scan completed; scheduling disabled') },
+                report=>sub { $log->warn('Mosaicly scanner authorization unavailable') },
+            );
+        };
+        $log->warn('Mosaicly scanner adapter unavailable') if $@;
+    }
+    $prefs->setChange(sub {
+        $mosaiclyScanner ? $mosaiclyScanner->invalidate : $mosaiclyLifecycle->refresh;
+    },
         'artistPortraitSource','runImporter');
     $mosaiclyLifecycle->refresh;
 }
 
 sub shutdownPlugin {
+    $mosaiclyScanner->shutdown if $mosaiclyScanner;
     $mosaiclyLifecycle->shutdown if $mosaiclyLifecycle;
 }
 
