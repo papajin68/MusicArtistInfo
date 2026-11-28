@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Lyrics::LRCLib;
+package Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib;
 
 use strict;
 
@@ -23,8 +23,8 @@ use constant MAX_LAG_BEFORE_PROXYING_SECS => 5;
 use constant PROXYING_PERIOD => 60 * 60;    # reset proxying after an hour, to see whether the situation has improved
 use constant REQUESTS_TO_AVERAGE => 5;      # number of requests to average response time over before deciding to proxy
 
-my $log = logger('plugin.musicartistinfo');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $useLRCProxy = 0;
 my $instrumentalString;
 my $avgResponseTimeInSecs = 1;
@@ -53,7 +53,7 @@ sub getLyrics {
 			my $result = shift;
 
 			if ($result && ref $result && ($result->{plainLyrics} || $result->{syncedLyrics} || $result->{instrumental})) {
-				$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
+				$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFOMOSAICLY_INSTRUMENTAL');
 
 				return $cb->({
 					song => $args->{title},
@@ -123,7 +123,7 @@ sub searchLyrics {
 					$useSynced = abs($lyrics->{duration} - $duration) <= MAX_DURATION_DIFF;
 				}
 
-				$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
+				$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFOMOSAICLY_INSTRUMENTAL');
 
 				return $cb->({
 					song => $lyrics->{title},
@@ -173,11 +173,11 @@ sub __call {
 	my $url = shift;
 
 	if (_useLRCProxy()) {
-		require Plugins::MusicArtistInfo::API;
-		Plugins::MusicArtistInfo::API::_call(BASE_URL_PROXIED . $url, @_);
+		require Plugins::MusicArtistInfoMosaicly::API;
+		Plugins::MusicArtistInfoMosaicly::API::_call(BASE_URL_PROXIED . $url, @_);
 	}
 	else {
-		Plugins::MusicArtistInfo::Common->call(BASE_URL . $url, @_);
+		Plugins::MusicArtistInfoMosaicly::Common->call(BASE_URL . $url, @_);
 	}
 }
 

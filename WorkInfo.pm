@@ -1,13 +1,13 @@
-package Plugins::MusicArtistInfo::WorkInfo;
+package Plugins::MusicArtistInfoMosaicly::WorkInfo;
 
 use strict;
 
 use Slim::Utils::Log;
 use Slim::Utils::Strings qw(string cstring);
 
-use Plugins::MusicArtistInfo::Common qw(CLICOMMAND validateLanguage REVIEW_TYPE_WORK);
+use Plugins::MusicArtistInfoMosaicly::Common qw(CLICOMMAND validateLanguage REVIEW_TYPE_WORK);
 
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 
 sub init {
 	my ($class) = @_;
@@ -47,7 +47,7 @@ sub getWorkReviewCLI {
 	};
 
 	if ( !($args && $args->{title} && $args->{composer}) ) {
-		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		$request->setStatusDone();
 		return;
 	}
@@ -55,7 +55,7 @@ sub getWorkReviewCLI {
 	$args->{lang} = $lang if $lang;
 
 	getWorkReview($client, sub {
-		Plugins::MusicArtistInfo::AlbumInfo::renderReviewCLIResponse($request, shift, sub {
+		Plugins::MusicArtistInfoMosaicly::AlbumInfo::renderReviewCLIResponse($request, shift, sub {
 			my ($request, $item) = @_;
 			$request->addResult('workreview', $item->{name});
 			$request->addResult('work_id', $args->{work_id}) if $args->{work_id};
@@ -63,7 +63,7 @@ sub getWorkReviewCLI {
 			$request->addResult('composer', $args->{composer}) if $args->{composer};
 		});
 	},{
-		isWeb  => $request->getParam('html') || Plugins::MusicArtistInfo::Plugin->isWebBrowser($client),
+		isWeb  => $request->getParam('html') || Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client),
 	}, $args);
 }
 
@@ -88,7 +88,7 @@ sub _getWorkFromWorkId {
 sub getWorkReview {
 	my ($client, $cb, $params, $args) = @_;
 
-	# if ( my $review = Plugins::MusicArtistInfo::LocalFile->getWorkReview($client, $params, $args) ) {
+	# if ( my $review = Plugins::MusicArtistInfoMosaicly::LocalFile->getWorkReview($client, $params, $args) ) {
 	# 	$cb->($review);
 	# 	return;
 	# }
@@ -96,9 +96,9 @@ sub getWorkReview {
 	$args->{lang} ||= validateLanguage($client, $args->{lang});
 	$args->{artist} = $args->{composer};
 
-	Plugins::MusicArtistInfo::API->getWorkReviewId(
+	Plugins::MusicArtistInfoMosaicly::API->getWorkReviewId(
 		sub {
-			Plugins::MusicArtistInfo::AlbumInfo::renderReview($client, REVIEW_TYPE_WORK, shift, $params, $args, $cb);
+			Plugins::MusicArtistInfoMosaicly::AlbumInfo::renderReview($client, REVIEW_TYPE_WORK, shift, $params, $args, $cb);
 		},
 		$args,
 	);

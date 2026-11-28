@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 require './Mosaicly/Orientation.pm';
-my $c = 'Plugins::MusicArtistInfo::Mosaicly::Orientation';
+my $c = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Orientation';
 
 sub app1 {
     my ($payload) = @_;

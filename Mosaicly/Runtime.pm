@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Runtime;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime;
 use strict;
 use warnings;
 use Cwd qw(abs_path);

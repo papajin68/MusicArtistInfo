@@ -8,8 +8,8 @@ use Scalar::Util qw(refaddr);
 
 load_native();
 
-my $c = 'Plugins::MusicArtistInfo::Mosaicly::Compositor';
-my $layout = 'Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $c = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
+my $layout = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 
 my $source = source_bmp(80,80,[224,32,64]);
 my $variants = [

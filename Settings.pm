@@ -1,18 +1,18 @@
-package Plugins::MusicArtistInfo::Settings;
+package Plugins::MusicArtistInfoMosaicly::Settings;
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(source validSource);
+use Plugins::MusicArtistInfoMosaicly::PortraitSource qw(source validSource);
 use base qw(Slim::Web::Settings);
 
 use Slim::Utils::Prefs;
 
-use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY CAN_ONLINE_LIBRARY CAN_LMS_ARTIST_ARTWORK isDirWritable);
+use Plugins::MusicArtistInfoMosaicly::Common qw(CAN_IMAGEPROXY CAN_ONLINE_LIBRARY CAN_LMS_ARTIST_ARTWORK isDirWritable);
 
-my $prefs = preferences('plugin.musicartistinfo');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $serverprefs = preferences('server');
 
 sub name {
-	return 'PLUGIN_MUSICARTISTINFO';
+	return 'PLUGIN_MUSICARTISTINFOMOSAICLY';
 }
 
 sub prefs {
@@ -27,14 +27,14 @@ sub prefs {
 }
 
 sub page {
-	return 'plugins/MusicArtistInfo/settings.html';
+	return 'plugins/MusicArtistInfoMosaicly/settings.html';
 }
 
 sub handler {
 	my ($class, $client, $paramRef, $pageSetup) = @_;
 
 	# update the lyrics providers to let users force-refresh the list without restarting LMS...
-	Plugins::MusicArtistInfo::TrackInfo->updateLyricsProviders();
+	Plugins::MusicArtistInfoMosaicly::TrackInfo->updateLyricsProviders();
 
 	# artfolder is a server setting - need to handle it manually
 	if ($paramRef->{'saveSettings'}) {
@@ -51,13 +51,13 @@ sub handler {
 		}
 	}
 
-	$paramRef->{hitRateLimit} = Plugins::MusicArtistInfo::API::hasHitRateLimit();
+	$paramRef->{hitRateLimit} = Plugins::MusicArtistInfoMosaicly::API::hasHitRateLimit();
 	$paramRef->{noImageProxy} = !CAN_IMAGEPROXY;
 	$paramRef->{canLMSArtistArtwork} = CAN_LMS_ARTIST_ARTWORK;
 	$paramRef->{canOnlineLibrary} = CAN_ONLINE_LIBRARY;
 	$paramRef->{artfolder} = $serverprefs->get('artfolder');
 	$paramRef->{languageOptions} = Slim::Utils::Strings::languageOptions();
-	$paramRef->{contentLanguages} = Plugins::MusicArtistInfo::Common::getContentLanguages();
+	$paramRef->{contentLanguages} = Plugins::MusicArtistInfoMosaicly::Common::getContentLanguages();
 	$paramRef->{lmsLanguage} = preferences('server')->get('language');
 
 	if ( $paramRef->{artfolder} && !isDirWritable($paramRef->{artfolder}) ) {

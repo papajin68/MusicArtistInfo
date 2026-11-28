@@ -12,7 +12,7 @@ use JSON::PP;
 use Digest::SHA qw(sha256_hex);
 
 require "$FindBin::Bin/../Mosaicly/Publisher.pm";
-my $class='Plugins::MusicArtistInfo::Mosaicly::Publisher';
+my $class='Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher';
 
 # Unit-test seams only; initialized Lyrion integration is separate.
 {
@@ -41,9 +41,9 @@ my $class='Plugins::MusicArtistInfo::Mosaicly::Publisher';
 my ($db,$current,$local,$sources);
 {
     no warnings 'redefine';
-    local *Plugins::MusicArtistInfo::Mosaicly::Publisher::_native=sub {$db};
-    local *Plugins::MusicArtistInfo::Mosaicly::Publisher::_local=sub {$local};
-    local *Plugins::MusicArtistInfo::Mosaicly::Publisher::_sources_current=sub {$sources};
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher::_native=sub {$db};
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher::_local=sub {$local};
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher::_sources_current=sub {$sources};
     my $json=JSON::PP->new->canonical->utf8;
     my $job={ok=>1,contributor_id=>1,entries=>[],diagnostics=>{}};
     my $bytes="\xff\xd8test\xff\xd9";
@@ -130,7 +130,7 @@ my ($db,$current,$local,$sources);
         chmod $mode,$path or die $!;
         open $modefh,'<:raw',$path or die $!;
         my $accepted=$mode==0600 || $mode==0700;
-        is(!!Plugins::MusicArtistInfo::Mosaicly::Publisher::_private_regular_file($modefh),
+        is(!!Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher::_private_regular_file($modefh),
             !!$accepted,sprintf('regular file mode %04o policy',$mode));
         close $modefh or die $!;
         my $published=$p->publish(identity=>$identity,output=>$out);
@@ -139,7 +139,7 @@ my ($db,$current,$local,$sources);
     }
     ($p,$root)=fixture();
     opendir my $dirfh,$root or die $!;
-    ok(!Plugins::MusicArtistInfo::Mosaicly::Publisher::_private_regular_file($dirfh),
+    ok(!Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher::_private_regular_file($dirfh),
         'directory is not a private regular file');
     closedir $dirfh;
 

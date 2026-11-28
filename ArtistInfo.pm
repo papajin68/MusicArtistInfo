@@ -1,7 +1,7 @@
-package Plugins::MusicArtistInfo::ArtistInfo;
+package Plugins::MusicArtistInfoMosaicly::ArtistInfo;
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
+use Plugins::MusicArtistInfoMosaicly::PortraitSource qw(onlineEnabled);
 use HTTP::Status qw(RC_MOVED_PERMANENTLY);
 
 use Slim::Menu::ArtistInfo;
@@ -11,14 +11,14 @@ use Slim::Menu::GlobalSearch;
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Log;
 
-use Plugins::MusicArtistInfo::Common qw(CLICOMMAND CAN_IMAGEPROXY CAN_LMS_ARTIST_ARTWORK validateLanguage);
-use Plugins::MusicArtistInfo::Discogs;
-use Plugins::MusicArtistInfo::LFM;
-use Plugins::MusicArtistInfo::API;
+use Plugins::MusicArtistInfoMosaicly::Common qw(CLICOMMAND CAN_IMAGEPROXY CAN_LMS_ARTIST_ARTWORK validateLanguage);
+use Plugins::MusicArtistInfoMosaicly::Discogs;
+use Plugins::MusicArtistInfoMosaicly::LFM;
+use Plugins::MusicArtistInfoMosaicly::API;
 
-my $log   = logger('plugin.musicartistinfo');
-my $onlineLog = logger('plugin.musicartistinfo.online');
-my $prefs = Slim::Utils::Prefs::preferences('plugin.musicartistinfo');
+my $log   = logger('plugin.musicartistinfomosaicly');
+my $onlineLog = logger('plugin.musicartistinfomosaicly.online');
+my $prefs = Slim::Utils::Prefs::preferences('plugin.musicartistinfomosaicly');
 
 sub init {
 #                                                                |requires Client
@@ -52,7 +52,7 @@ sub init {
 	# some clients might still be calling us - redirect to LMS' artist artwork handler
 	if (CAN_IMAGEPROXY) {
 		require Slim::Web::ImageProxy;
-		require Plugins::MusicArtistInfo::LocalArtwork;
+		require Plugins::MusicArtistInfoMosaicly::LocalArtwork;
 
 		if (CAN_LMS_ARTIST_ARTWORK) {
 			Slim::Web::Pages->addRawFunction(
@@ -105,12 +105,12 @@ sub getArtistMenu {
 	my $pt = [$args];
 
 	my $items = [ {
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_RELATED_ARTISTS'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_RELATED_ARTISTS'),
 		type => 'link',
 		url  => \&getRelatedArtists,
 		passthrough => $pt,
 	},{
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_DISCOGRAPHY'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_DISCOGRAPHY'),
 		type => 'link',
 		url  => \&getDiscography,
 		passthrough => $pt,
@@ -140,14 +140,14 @@ sub getArtistMenu {
 	# we don't show pictures, videos and length text content on ip3k
 	if (!$params->{isButton}) {
 		unshift @$items, {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_BIOGRAPHY'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_BIOGRAPHY'),
 			type => 'link',
 			url  => \&getBiography,
 			passthrough => $pt,
 		};
 
 		push @$items, {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ARTISTPICTURES'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ARTISTPICTURES'),
 			type => ($client && $client->controllerUA || '') =~ /squeezeplay/i ? 'link' : 'slideshow',
 			url  => \&getArtistPhotos,
 			passthrough => $pt,
@@ -167,7 +167,7 @@ sub getArtistMenu {
 sub getBiography {
 	my ($client, $cb, $params, $args) = @_;
 
-	if ( my $biography = Plugins::MusicArtistInfo::LocalFile->getBiography($client, $params, $args) ) {
+	if ( my $biography = Plugins::MusicArtistInfoMosaicly::LocalFile->getBiography($client, $params, $args) ) {
 		$cb->($biography);
 		return;
 	}
@@ -175,18 +175,18 @@ sub getBiography {
 	$args->{lang} ||= validateLanguage($client, $args->{lang});
 
 	# try to get album name as a hint to help disambiguate artists with common names
-	if ( !$args->{album} && (my $track = Plugins::MusicArtistInfo::Common::getTrackAndRadioUrl($client, $args)) ) {
-		if ( $track->isRemoteURL && (my $meta = Plugins::MusicArtistInfo::Common::getMetadataFor($client, $track)) ) {
+	if ( !$args->{album} && (my $track = Plugins::MusicArtistInfoMosaicly::Common::getTrackAndRadioUrl($client, $args)) ) {
+		if ( $track->isRemoteURL && (my $meta = Plugins::MusicArtistInfoMosaicly::Common::getMetadataFor($client, $track)) ) {
 			if ($meta->{artist} && $meta->{artist} eq $args->{artist}) {
-				$args->{album} = Plugins::MusicArtistInfo::Common::cleanupAlbumName($meta->{album});
+				$args->{album} = Plugins::MusicArtistInfoMosaicly::Common::cleanupAlbumName($meta->{album});
 			}
 		}
 		elsif ($track->artistName && $track->artistName eq $args->{artist}) {
-			$args->{album} = Plugins::MusicArtistInfo::Common::cleanupAlbumName($track->albumname);
+			$args->{album} = Plugins::MusicArtistInfoMosaicly::Common::cleanupAlbumName($track->albumname);
 		}
 	}
 
-	Plugins::MusicArtistInfo::API->getArtistBioId(
+	Plugins::MusicArtistInfoMosaicly::API->getArtistBioId(
 		sub {
 			my $bioData = shift || {};
 
@@ -197,7 +197,7 @@ sub getBiography {
 					# in case of error or lack of Bio, try to fall back to English
 					delete $args->{lang};
 
-					Plugins::MusicArtistInfo::LFM->getBiography($client, sub {
+					Plugins::MusicArtistInfoMosaicly::LFM->getBiography($client, sub {
 						$cb->(_getBioItems($_[0], $client, $params, $bioData));
 					}, $args);
 				}
@@ -208,7 +208,7 @@ sub getBiography {
 
 			# TODO - respect fallback language setting?
 			if ($bioData && (my $pageData = $bioData->{wikidata})) {
-				Plugins::MusicArtistInfo::Wikipedia->getPage($client, sub {
+				Plugins::MusicArtistInfoMosaicly::Wikipedia->getPage($client, sub {
 					my $bio = shift;
 
 					if ($bio && $bio->{content} && $bio->{contentText}) {
@@ -217,7 +217,7 @@ sub getBiography {
 						return $bioCb->($bio);
 					}
 
-					Plugins::MusicArtistInfo::LFM->getBiography($client, $bioCb, $args);
+					Plugins::MusicArtistInfoMosaicly::LFM->getBiography($client, $bioCb, $args);
 				}, {
 					title => $pageData->{title},
 					id => $pageData->{pageid},
@@ -232,17 +232,17 @@ sub getBiography {
 
 						if ($@) {
 							$http->error($@ || 'Invalid response: ' . $http->content);
-							Plugins::MusicArtistInfo::LFM->getBiography($client, $bioCb, $args);
+							Plugins::MusicArtistInfoMosaicly::LFM->getBiography($client, $bioCb, $args);
 							return;
 						}
 
 						utf8::decode($content);
-						$content .= "\n\n<span class=\"maiAIHint\">" . cstring($client, 'PLUGIN_MUSICARTISTINFO_GENAI_NOTE') . "</span>";
+						$content .= "\n\n<span class=\"maiAIHint\">" . cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_GENAI_NOTE') . "</span>";
 
-						require Plugins::MusicArtistInfo::Parser::Markdown;
+						require Plugins::MusicArtistInfoMosaicly::Parser::Markdown;
 						my $bio = {
-							bio => '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfo/html/mai.css" />' . Plugins::MusicArtistInfo::Parser::Markdown->parseToHTML(\$content),
-							bioText => Plugins::MusicArtistInfo::Parser::Markdown->parse(\$content),
+							bio => '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfoMosaicly/html/mai.css" />' . Plugins::MusicArtistInfoMosaicly::Parser::Markdown->parseToHTML(\$content),
+							bioText => Plugins::MusicArtistInfoMosaicly::Parser::Markdown->parse(\$content),
 						};
 
 						$bio->{bio} =~ s/\n+//g;
@@ -251,7 +251,7 @@ sub getBiography {
 					},
 					sub {
 						$log->error("Failed to fetch MD biography " . $bioData->{url} . ": " . $_[0]->error);
-						Plugins::MusicArtistInfo::LFM->getBiography($client, $bioCb, $args);
+						Plugins::MusicArtistInfoMosaicly::LFM->getBiography($client, $bioCb, $args);
 					},
 					{
 						cache => 1,
@@ -260,7 +260,7 @@ sub getBiography {
 				)->get($bioData->{url});
 			}
 			else {
-				Plugins::MusicArtistInfo::LFM->getBiography($client, $bioCb, $args);
+				Plugins::MusicArtistInfoMosaicly::LFM->getBiography($client, $bioCb, $args);
 			}
 		},
 		$args,
@@ -273,17 +273,17 @@ sub _getBioItems {
 	my $content = '';
 
 	if ($bio->{error}) {
-		if (keys %$args && Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params)) {
-			$bio->{error} = sprintf("<p>%s</p>\n%s", $bio->{error}, Plugins::MusicArtistInfo::Common::getExternalLinks($client, $args));
+		if (keys %$args && Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client, $params)) {
+			$bio->{error} = sprintf("<p>%s</p>\n%s", $bio->{error}, Plugins::MusicArtistInfoMosaicly::Common::getExternalLinks($client, $args));
 		}
 
 		$content = $bio->{error};
 	}
 	elsif ($bio->{bio}) {
-		if ( Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params) ) {
+		if ( Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client, $params) ) {
 			$content = '<h4>' . $bio->{author} . '</h4>' if $bio->{author};
 			$content .= $bio->{bio};
-			$content .= Plugins::MusicArtistInfo::Common::getExternalLinks($client, $args) if keys %$args;
+			$content .= Plugins::MusicArtistInfoMosaicly::Common::getExternalLinks($client, $args) if keys %$args;
 		}
 		else {
 			$content = $bio->{author} . '\n\n' if $bio->{author};
@@ -291,7 +291,7 @@ sub _getBioItems {
 		}
 	}
 
-	return Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $content);
+	return Plugins::MusicArtistInfoMosaicly::Plugin->textAreaItem($client, $params->{isButton}, $content);
 }
 
 sub getBiographyCLI {
@@ -309,7 +309,7 @@ sub getBiographyCLI {
 
 			my $artistInfo = _getArtistFromArtistId($artist_id || $artist);
 			my $portraitId = $artistInfo && $artistInfo->{portraitId};
-			my $defaultError = cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+			my $defaultError = cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 
 			if ( !$items || !ref $items || ref $items ne 'ARRAY' || !scalar @$items ) {
 				main::INFOLOG && $log->is_info && $log->info("No Biography found: " . Data::Dump::dump($items));
@@ -332,7 +332,7 @@ sub getBiographyCLI {
 
 			$request->setStatusDone();
 		},{
-			isWeb  => $request->getParam('html') || Plugins::MusicArtistInfo::Plugin->isWebBrowser($client),
+			isWeb  => $request->getParam('html') || Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client),
 		},{
 			artist => $artist,
 			album => $album,
@@ -367,7 +367,7 @@ sub _checkRequest {
 
 	return ($artist, $artist_id, $mbid, $lang, $album) if $artist;
 
-	$request->addResult('error', cstring($request->client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+	$request->addResult('error', cstring($request->client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 	$request->setStatusDone();
 	return;
 }
@@ -401,7 +401,7 @@ sub getArtistPhotos {
 
 		if ( !scalar @$items ) {
 			$items = [{
-				name => cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'),
+				name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'),
 				type => 'text'
 			}];
 		}
@@ -484,19 +484,19 @@ sub _getArtistPhotos {
 		$_ => 1
 	} @$services;
 
-	Plugins::MusicArtistInfo::LFM->getArtistPhotos($client, sub {
+	Plugins::MusicArtistInfoMosaicly::LFM->getArtistPhotos($client, sub {
 		$results->{lfm} = shift || { photos => [] };
 		$gotArtistPhotosCb->($results);
 	}, $args ) if delete $services{lfm};
 
-	Plugins::MusicArtistInfo::Discogs->getArtistPhotos($client, sub {
+	Plugins::MusicArtistInfoMosaicly::Discogs->getArtistPhotos($client, sub {
 		$results->{discogs} = shift || { photos => [] };
 		$gotArtistPhotosCb->($results);
 	}, $args ) if delete $services{discogs};
 
 	if ($services{'local'}) {
 		if ( CAN_IMAGEPROXY && !(main::DEBUGLOG && $onlineLog->is_debug) ) {
-			my $local = Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+			my $local = Plugins::MusicArtistInfoMosaicly::LocalArtwork->getArtistPhoto({
 				artist    => $args->{artist},
 				artist_id => $args->{artist_id},
 			});
@@ -528,7 +528,7 @@ sub getArtistPhotoCLI {
 	return unless $artist;
 
 	# try local artwork first
-	if ( CAN_IMAGEPROXY && !(main::DEBUGLOG && $onlineLog->is_debug) && (Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+	if ( CAN_IMAGEPROXY && !(main::DEBUGLOG && $onlineLog->is_debug) && (Plugins::MusicArtistInfoMosaicly::LocalArtwork->getArtistPhoto({
 		artist    => $artist,
 		artist_id => $artist_id,
 		rawUrl    => 1,
@@ -545,8 +545,8 @@ sub getArtistPhotoCLI {
 		my $photos = shift;
 
 		if (!$photos || !ref $photos || !scalar @$photos) {
-			$log->warn(cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
-			$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'))
+			$log->warn(cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
+			$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'))
 		}
 		else {
 			my $photo = $photos->[0];
@@ -567,7 +567,7 @@ sub getArtistPhotoCLI {
 sub getRelatedArtists {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::MusicArtistInfo::LFM->getRelatedArtists($client,
+	Plugins::MusicArtistInfoMosaicly::LFM->getRelatedArtists($client,
 		sub {
 			my $relations = shift;
 			my $items = [];
@@ -601,13 +601,13 @@ sub getRelatedArtists {
 sub getDiscography {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::MusicArtistInfo::Discogs->getDiscography($client, sub {
+	Plugins::MusicArtistInfoMosaicly::Discogs->getDiscography($client, sub {
 		my $items = shift;
 
 		$items = [ map { {
 			name => $_->{title} . ($_->{'year'} ? ' (' . $_->{'year'} . ')' : ''),
 			image => $_->{image},
-			url => \&Plugins::MusicArtistInfo::AlbumInfo::getAlbumMenu,
+			url => \&Plugins::MusicArtistInfoMosaicly::AlbumInfo::getAlbumMenu,
 			passthrough => [{
 				artist => $args->{artist},
 				album => $_->{title},
@@ -620,7 +620,7 @@ sub getDiscography {
 	}, $args);
 
 =pod
-	Plugins::MusicArtistInfo::MusicBrainz->getDiscography($client,
+	Plugins::MusicArtistInfoMosaicly::MusicBrainz->getDiscography($client,
 		sub {
 			my $releases = shift;
 
@@ -662,7 +662,7 @@ sub trackInfoHandler {
 		}
 
 		return {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ARTISTINFO'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ARTISTINFO'),
 			type => 'outline',
 			items => $items,
 		};
@@ -699,7 +699,7 @@ sub albumInfoHandler {
 		}
 
 		return {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ARTISTINFO'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ARTISTINFO'),
 			type => 'outline',
 			items => $items,
 		};
@@ -734,7 +734,7 @@ sub _objInfoHandler {
 	my $items = getArtistMenu($client, undef, $args);
 
 	return {
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ARTISTINFO'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ARTISTINFO'),
 		type => 'outline',
 		items => $items,
 		passthrough => [ $args ],
@@ -886,7 +886,7 @@ sub _artworkUrl {
 	my ($artist_id) = $url =~ m|mai/_?artist/(.+)|i;
 
 	return Slim::Utils::Misc::fileURLFromPath(
-		Plugins::MusicArtistInfo::LocalArtwork->defaultArtistPhoto()
+		Plugins::MusicArtistInfoMosaicly::LocalArtwork->defaultArtistPhoto()
 	) unless $artist_id;
 
 	my $artistInfo = _getArtistFromArtistId($artist_id);
@@ -898,7 +898,7 @@ sub _artworkUrl {
 	main::INFOLOG && $log->info("Artist ID is '$artist_id', name '$artist', musicbrainz ID '$mbid'");
 
 	# try local artwork first
-	if ( (!onlineEnabled($prefs) || !(main::DEBUGLOG && $onlineLog->is_debug)) && (my $local = Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+	if ( (!onlineEnabled($prefs) || !(main::DEBUGLOG && $onlineLog->is_debug)) && (my $local = Plugins::MusicArtistInfoMosaicly::LocalArtwork->getArtistPhoto({
 		artist    => $artist,
 		artist_id => $artist_id,
 		rawUrl    => 1,
@@ -909,18 +909,18 @@ sub _artworkUrl {
 
 	# Automatic library artwork fallback respects the source; explicit photo requests do not.
 	return Slim::Utils::Misc::fileURLFromPath(
-		Plugins::MusicArtistInfo::LocalArtwork->defaultArtistPhoto()
+		Plugins::MusicArtistInfoMosaicly::LocalArtwork->defaultArtistPhoto()
 	) unless onlineEnabled($prefs);
 
-	Plugins::MusicArtistInfo::API->getArtistPhoto(sub {
+	Plugins::MusicArtistInfoMosaicly::API->getArtistPhoto(sub {
 		my $photo = shift || {};
 
 		if (!$photo->{url}) {
-			$log->warn(string('PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+			$log->warn(string('PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		}
 
 		my $url = $photo->{url} || Slim::Utils::Misc::fileURLFromPath(
-			Plugins::MusicArtistInfo::LocalArtwork->defaultArtistPhoto()
+			Plugins::MusicArtistInfoMosaicly::LocalArtwork->defaultArtistPhoto()
 		);
 
 		main::INFOLOG && $log->is_info && $log->info("Got artwork for '$artist': $url");

@@ -21,21 +21,21 @@ for my $case (
 ) {
     my ($values,$expected)=@$case;
     my $prefs=TestPrefs->new(%$values);
-    is(Plugins::MusicArtistInfo::PortraitSource::source($prefs),$expected,'read policy');
+    is(Plugins::MusicArtistInfoMosaicly::PortraitSource::source($prefs),$expected,'read policy');
     is($prefs->{writes},0,'read-only scanner policy');
-    is(!!Plugins::MusicArtistInfo::PortraitSource::onlineEnabled($prefs),!!($expected eq 'online'),'online gate');
-    is(Plugins::MusicArtistInfo::PortraitSource::initSource($prefs),$expected,'migration');
+    is(!!Plugins::MusicArtistInfoMosaicly::PortraitSource::onlineEnabled($prefs),!!($expected eq 'online'),'online gate');
+    is(Plugins::MusicArtistInfoMosaicly::PortraitSource::initSource($prefs),$expected,'migration');
     is($prefs->get('artistPortraitSource'),$expected,'stored authoritative mode');
     my $writes=$prefs->{writes};
-    Plugins::MusicArtistInfo::PortraitSource::initSource($prefs);
+    Plugins::MusicArtistInfoMosaicly::PortraitSource::initSource($prefs);
     is($prefs->{writes},$writes,'idempotent migration');
     is($prefs->get('lookupArtistPictures'),$values->{lookupArtistPictures},'legacy value untouched');
 }
 for my $v ('online','mosaicly','none') {
-    ok(Plugins::MusicArtistInfo::PortraitSource::validSource($v),'valid mode');
+    ok(Plugins::MusicArtistInfoMosaicly::PortraitSource::validSource($v),'valid mode');
 }
 for my $v (undef,'','ONLINE','0',[],{}, "online\n") {
-    ok(!Plugins::MusicArtistInfo::PortraitSource::validSource($v),'invalid mode rejected');
+    ok(!Plugins::MusicArtistInfoMosaicly::PortraitSource::validSource($v),'invalid mode rejected');
 }
 # Pure registration predicate: the real scanner uses this after local folder registration.
 for my $case (
@@ -54,9 +54,9 @@ for my $case (
     my ($mode,$run,$native,$extra,$server,$required,$work)=@$case;
     my $prefs=TestPrefs->new(artistPortraitSource=>$mode,runImporter=>$run,%$extra);
     my $serverprefs=TestPrefs->new(%$server);
-    is(!!Plugins::MusicArtistInfo::PortraitSource::importerRequired($prefs,$serverprefs,$native),
+    is(!!Plugins::MusicArtistInfoMosaicly::PortraitSource::importerRequired($prefs,$serverprefs,$native),
         !!$required,"importer registration $mode/$run/$native");
-    is(!!Plugins::MusicArtistInfo::PortraitSource::legacyImporterWork($prefs,$serverprefs),
+    is(!!Plugins::MusicArtistInfoMosaicly::PortraitSource::legacyImporterWork($prefs,$serverprefs),
         !!$work,"legacy work $mode/$run/$native");
 }
 done_testing;

@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Parser::Markdown;
+package Plugins::MusicArtistInfoMosaicly::Parser::Markdown;
 
 use strict;
 
@@ -28,7 +28,7 @@ sub renderAsHTML {
 
 	$response->content_type('text/html');
 	$response->header('Connection' => 'close');
-	$response->content_ref(Slim::Web::HTTP::filltemplatefile('/plugins/MusicArtistInfo/generic.html', {
+	$response->content_ref(Slim::Web::HTTP::filltemplatefile('/plugins/MusicArtistInfoMosaicly/generic.html', {
 		title => $path,
 		webroot => '/',
 		path => $response->request->uri->path,

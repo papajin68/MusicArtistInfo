@@ -7,7 +7,7 @@ use MosaiclyTestSupport qw(load_native make_png variant_pixel quadrant_jpeg inse
 
 load_native();
 
-my $c = 'Plugins::MusicArtistInfo::Mosaicly::Compositor';
+my $c = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
 
 my @colors = (
     [224, 32, 32],

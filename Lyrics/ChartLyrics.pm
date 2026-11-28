@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Lyrics::ChartLyrics;
+package Plugins::MusicArtistInfoMosaicly::Lyrics::ChartLyrics;
 
 use strict;
 
@@ -18,7 +18,7 @@ use constant GET_LYRICS_URL => BASE_URL . 'GetLyric?lyricId=%s&lyricCheckSum=%s'
 # max. editing distance as found by Levenshtein algorithm
 use constant MAX_DISTANCE => 6;
 
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 
 # sometimes ChartLyrics is down for days - skip it if needed
 use constant RETRY_AFTER => 3600;
@@ -27,7 +27,7 @@ my $nextTry = 0;
 sub searchLyrics {
 	my ( $class, $args, $cb ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call(
+	Plugins::MusicArtistInfoMosaicly::Common->call(
 		sprintf(SEARCH_URL, uri_escape_utf8($args->{artist}), uri_escape_utf8($args->{title})),
 		sub {
 			my $items = shift;
@@ -57,7 +57,7 @@ sub searchLyrics {
 sub searchLyricsDirect {
 	my ( $class, $args, $cb ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call( sprintf(SEARCH_DIRECT_URL, uri_escape_utf8($args->{artist}), uri_escape_utf8($args->{title})), sub {
+	Plugins::MusicArtistInfoMosaicly::Common->call( sprintf(SEARCH_DIRECT_URL, uri_escape_utf8($args->{artist}), uri_escape_utf8($args->{title})), sub {
 		my $items = shift;
 
 		if ($items && ref $items && $items->{Lyric} && !ref $items->{Lyric}) {
@@ -75,7 +75,7 @@ sub searchLyricsDirect {
 sub getLyrics {
 	my ( $class, $args, $cb ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call( sprintf(GET_LYRICS_URL, uri_escape_utf8($args->{id}), uri_escape_utf8($args->{checksum})), sub {
+	Plugins::MusicArtistInfoMosaicly::Common->call( sprintf(GET_LYRICS_URL, uri_escape_utf8($args->{id}), uri_escape_utf8($args->{checksum})), sub {
 		my $items = shift;
 
 		if ($items && ref $items && $items->{Lyric} && !ref $items->{Lyric}) {

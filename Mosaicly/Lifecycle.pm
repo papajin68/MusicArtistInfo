@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Lifecycle;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Lifecycle;
 use strict;
 use warnings;
 

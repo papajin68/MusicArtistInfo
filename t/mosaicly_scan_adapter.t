@@ -3,8 +3,8 @@ use warnings;
 use Test::More;
 require './Mosaicly/ScanSession.pm';
 require './Mosaicly/ScanAdmission.pm';
-$INC{'Plugins/MusicArtistInfo/Mosaicly/ScanSession.pm'}=1;
-$INC{'Plugins/MusicArtistInfo/Mosaicly/ScanAdmission.pm'}=1;
+$INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/ScanSession.pm'}=1;
+$INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/ScanAdmission.pm'}=1;
 {
     package Slim::Control::Request;
     our (%dispatch,%listeners);
@@ -58,7 +58,7 @@ $Slim::Control::Request::dispatch{$_}=$native for qw(rescan wipecache);
 my $oldNext=Slim::Music::Import->can('nextScanTask');
 Slim::Control::Request::subscribe($oldNext,[['rescan'],['done']]);
 my ($ready,$invalidations)=(1,0);
-my $owner=Plugins::MusicArtistInfo::Mosaicly::ScanAdapter->install(
+my $owner=Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdapter->install(
     enabled=>sub {0}, invalidate=>sub {++$invalidations},
     drain=>sub {$ready}, completed=>sub {die 'unexpected completion'},
     report=>sub {},random=>sub {'a' x (2*$_[0])},

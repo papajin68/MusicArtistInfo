@@ -9,7 +9,7 @@ require './Mosaicly/ScanSession.pm';
 }
 my ($process,$enabled,$invalidations)=(undef,1,0);
 my (@timers,@completed,@events);
-my $owner=Plugins::MusicArtistInfo::Mosaicly::ScanSession->new(
+my $owner=Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanSession->new(
     enabled=>sub {$enabled}, process=>sub {$process},
     schedule=>sub {push @timers,[@_]},
     completed=>sub {push @completed,$_[0]},

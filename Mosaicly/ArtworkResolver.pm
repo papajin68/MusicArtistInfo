@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver;
 
 use strict;
 use warnings;

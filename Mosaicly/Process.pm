@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Process;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Process;
 
 use strict;
 use warnings;

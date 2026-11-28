@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 require './Mosaicly/Scheduler.pm';
 require './Mosaicly/Lifecycle.pm';
-my $class='Plugins::MusicArtistInfo::Mosaicly::Scheduler';
+my $class='Plugins::MusicArtistInfoMosaicly::Mosaicly::Scheduler';
 my ($current,@timers,@starts,@reports,@done,@pages,$limit,$page,$start);
 sub fixture {
     ($current,$limit)=(1,40);
@@ -80,7 +80,7 @@ my (%guards,@callbacks,@jobs,@summary);
     package SchedulerTestServer;
     sub shutdown {1}
 }
-my $owner=Plugins::MusicArtistInfo::Mosaicly::Lifecycle->new(
+my $owner=Plugins::MusicArtistInfoMosaicly::Mosaicly::Lifecycle->new(
     enabled=>sub {$enabled}, activation=>sub {$activation},
     safe=>sub {$safe},resource=>sub {$resource},report=>sub {},
     build=>sub {%guards=@_; bless {},'SchedulerTestServer'},

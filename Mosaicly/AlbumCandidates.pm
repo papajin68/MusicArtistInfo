@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates;
 
 use strict;
 use warnings;

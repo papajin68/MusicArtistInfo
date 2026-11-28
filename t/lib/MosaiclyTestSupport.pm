@@ -33,7 +33,7 @@ sub load_native {
     for my $module (qw(Layout RGB BMP NormalizedPNG Orientation Compositor)) {
         my $file = File::Spec->catfile($root, 'Mosaicly', "$module.pm");
         require $file;
-        $INC{"Plugins/MusicArtistInfo/Mosaicly/$module.pm"} = $file;
+        $INC{"Plugins/MusicArtistInfoMosaicly/Mosaicly/$module.pm"} = $file;
     }
 }
 
@@ -59,9 +59,9 @@ sub bounded_progressive_enabled {
     return 1;
 }
 
-my $rgb = 'Plugins::MusicArtistInfo::Mosaicly::RGB';
-my $bmp = 'Plugins::MusicArtistInfo::Mosaicly::BMP';
-my $png = 'Plugins::MusicArtistInfo::Mosaicly::NormalizedPNG';
+my $rgb = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::RGB';
+my $bmp = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::BMP';
+my $png = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::NormalizedPNG';
 
 sub chunk {
     my ($tag,$data) = @_;

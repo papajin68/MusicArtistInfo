@@ -4,7 +4,7 @@ use utf8;
 use Test::More;
 use Digest::SHA qw(sha256_hex);
 require './Mosaicly/Selection.pm';
-my $s = 'Plugins::MusicArtistInfo::Mosaicly::Selection';
+my $s = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Selection';
 sub candidate {
     my ($id, %extra) = @_;
     return { album_id => $id, title => "Album $id", year => 2000,

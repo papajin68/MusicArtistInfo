@@ -8,12 +8,12 @@ use Digest::SHA qw(sha256_hex);
 BEGIN {
     for my $m (qw(AlbumCandidates ArtworkResolver Selection Layout)) {
         require "./Mosaicly/$m.pm";
-        $INC{"Plugins/MusicArtistInfo/Mosaicly/$m.pm"} = 1;
+        $INC{"Plugins/MusicArtistInfoMosaicly/Mosaicly/$m.pm"} = 1;
     }
-    $INC{'Plugins/MusicArtistInfo/Mosaicly/Compositor.pm'} = 1;
+    $INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/Compositor.pm'} = 1;
 }
 require './Mosaicly/Generator.pm';
-my $g = 'Plugins::MusicArtistInfo::Mosaicly::Generator';
+my $g = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator';
 
 my (@candidates, @retrieved, @prepared, @rendered);
 my ($discover_error, $retrieve_error, $render_error);
@@ -24,19 +24,19 @@ sub candidate {
 }
 {
     no warnings qw(redefine once);
-    local *Plugins::MusicArtistInfo::Mosaicly::Generator::_contained = sub {0};
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator::_contained = sub {0};
     is($g->generate(contributor_id=>1)->{reason},
         'worker_containment_required','uncontained generation refused');
 }
 {
     no warnings qw(redefine once);
-    local *Plugins::MusicArtistInfo::Mosaicly::Generator::_contained = sub {1};
-    local *Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates::discover = sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator::_contained = sub {1};
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates::discover = sub {
         my ($class,%a)=@_;
         return {ok=>0,reason=>$discover_error} if $discover_error;
         return {ok=>1,candidates=>\@candidates,diagnostics=>{test=>1}};
     };
-    local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::resolve = sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver::resolve = sub {
         my ($class,%a)=@_;
         push @retrieved,$a{album_id};
         return {ok=>0,reason=>$retrieve_error} if $retrieve_error;
@@ -44,17 +44,17 @@ sub candidate {
         return {ok=>1,%a,track_id=>$id,source_kind=>'external',
             content_type=>'image/jpeg',bytes=>"cover$id"};
     };
-    local *Plugins::MusicArtistInfo::Mosaicly::Compositor::variants_for_slot = sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor::variants_for_slot = sub {
         my ($class,%a)=@_;
         return [{width=>300,height=>300,slot=>$a{slot}}];
     };
-    local *Plugins::MusicArtistInfo::Mosaicly::Compositor::prepare = sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor::prepare = sub {
         my ($class,%a)=@_;
         push @prepared,\%a;
         return {ok=>0,reason=>'corrupt_image'} if $a{bytes} eq 'cover99';
         return {ok=>1,image=>$a{bytes}};
     };
-    local *Plugins::MusicArtistInfo::Mosaicly::Compositor::render = sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor::render = sub {
         my ($class,%a)=@_;
         push @rendered,\%a;
         die 'renderer failed' if $render_error;
@@ -102,14 +102,14 @@ sub candidate {
     # then execute only the captured descriptors inside the worker.
     {
         my @described;
-        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::describe = sub {
+        local *Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver::describe = sub {
             my ($class,%a)=@_;
             push @described,$a{album_id};
             return {ok=>0,reason=>'source_unavailable'} if $a{album_id}==1;
             return {ok=>1,%a,track_id=>$a{album_id},source_kind=>'external',
                 path=>"/music/$a{album_id}.jpg",file_identity=>[1,2,3,4,5]};
         };
-        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::retrieve = sub {
+        local *Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver::retrieve = sub {
             my ($class,$d)=@_;
             push @retrieved,$d->{album_id};
             return {ok=>1,(map {$_=>$d->{$_}} qw(album_id artwork_id track_id source_kind)),
@@ -119,7 +119,7 @@ sub candidate {
         @retrieved=@prepared=@rendered=();
         my $job;
         {
-            local *Plugins::MusicArtistInfo::Mosaicly::Generator::_contained = sub {0};
+            local *Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator::_contained = sub {0};
             $job=$g->prepare_job(contributor_id=>7);
         }
         ok($job->{ok},'metadata preparation does not require worker limits');
@@ -127,8 +127,8 @@ sub candidate {
         is(scalar @retrieved,0,'server preparation does not acquire art');
         is(scalar @prepared,0,'server preparation does not decode art');
         is($job->{diagnostics}{candidate_budget_omitted},8,'job records budget omissions');
-        local *Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates::discover = sub {die 'worker must not discover'};
-        local *Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver::resolve = sub {die 'worker must not resolve from DB'};
+        local *Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates::discover = sub {die 'worker must not discover'};
+        local *Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver::resolve = sub {die 'worker must not resolve from DB'};
         my $result=$g->generate(contributor_id=>7,job=>$job);
         ok($result->{ok},'descriptor worker generation');
         is_deeply(\@retrieved,[2,3,4,5],'skip unavailable and stop after four');

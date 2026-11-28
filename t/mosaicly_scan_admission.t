@@ -5,7 +5,7 @@ require './Mosaicly/ScanAdmission.pm';
 
 my ($ready,$nativeFlag,$scanning,$invalidations,$launches,$clears)=(1,0,0,0,0,0);
 my (@queue,@timers);
-my $admission=Plugins::MusicArtistInfo::Mosaicly::ScanAdmission->new(
+my $admission=Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdmission->new(
     invalidate=>sub {++$invalidations},
     drain=>sub {$ready},
     schedule=>sub {push @timers,$_[0]},

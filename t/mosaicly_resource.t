@@ -7,11 +7,11 @@ my @load_warnings;
     require './Mosaicly/Resource.pm';
 }
 is_deeply(\@load_warnings,[],'resource module loads without warnings');
-ok(Plugins::MusicArtistInfo::Mosaicly::Resource::_safe_path('/user.slice/user@568.service'),
+ok(Plugins::MusicArtistInfoMosaicly::Mosaicly::Resource::_safe_path('/user.slice/user@568.service'),
     'literal at sign in cgroup path accepted');
-ok(Plugins::MusicArtistInfo::Mosaicly::Resource::_safe_path('/lab:1'),
+ok(Plugins::MusicArtistInfoMosaicly::Mosaicly::Resource::_safe_path('/lab:1'),
     'literal colon in cgroup path accepted');
-my $class='Plugins::MusicArtistInfo::Mosaicly::Resource';
+my $class='Plugins::MusicArtistInfoMosaicly::Mosaicly::Resource';
 my $base='/sys/fs/cgroup';
 my $quiet="some avg10=0.00 avg60=0.00 avg300=0.00 total=0\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0\n";
 my %f;

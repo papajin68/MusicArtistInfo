@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::RGB;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::RGB;
 use strict;
 use warnings;
 use bytes;

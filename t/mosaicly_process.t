@@ -12,7 +12,7 @@ use lib "$FindBin::Bin/..";
 BEGIN {
     require "$FindBin::Bin/../Mosaicly/Process.pm";
 }
-my $class='Plugins::MusicArtistInfo::Mosaicly::Process';
+my $class='Plugins::MusicArtistInfoMosaicly::Mosaicly::Process';
 plan skip_all=>'Linux process adapter' unless $class->supported;
 
 my $root=tempdir(CLEANUP=>1);

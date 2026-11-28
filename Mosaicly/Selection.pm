@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Selection;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Selection;
 
 use strict;
 use warnings;

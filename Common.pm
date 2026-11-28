@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Common;
+package Plugins::MusicArtistInfoMosaicly::Common;
 
 use strict;
 
@@ -54,11 +54,11 @@ my $contentLanguages = {
 
 my $cache = Slim::Utils::Cache->new();
 my $log = Slim::Utils::Log->addLogCategory( {
-	category     => 'plugin.musicartistinfo',
+	category     => 'plugin.musicartistinfomosaicly',
 	defaultLevel => 'WARN',
-	description  => 'PLUGIN_MUSICARTISTINFO',
+	description  => 'PLUGIN_MUSICARTISTINFOMOSAICLY',
 } );
-my $prefs = preferences('plugin.musicartistinfo');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 
 my $ua;
 my %killWords = ();
@@ -69,13 +69,13 @@ use constant MAX_DELAY => 30;
 
 sub validateLanguage {
 	my ($client, $lang) = @_;
-	return $lang || $contentLanguages->{$prefs->get('preferredLanguage')} || cstring($client, 'PLUGIN_MUSICARTISTINFO_WIKIPEDIA_LANGUAGE');
+	return $lang || $contentLanguages->{$prefs->get('preferredLanguage')} || cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_WIKIPEDIA_LANGUAGE');
 }
 
 sub storeContentLanguageStrings {
 	Slim::Utils::Strings::storeExtraStrings([{
 		strings => $contentLanguages,
-		token   => 'PLUGIN_MUSICARTISTINFO_WIKIPEDIA_LANGUAGE',
+		token   => 'PLUGIN_MUSICARTISTINFOMOSAICLY_WIKIPEDIA_LANGUAGE',
 	}]);
 }
 
@@ -88,7 +88,7 @@ sub getKillWords { \%killWords }
 sub updateKillWords {
 	my $class = shift;
 
-	Plugins::MusicArtistInfo::API->getKillwords(
+	Plugins::MusicArtistInfoMosaicly::API->getKillwords(
 		sub {
 			my $killWordsList = shift;
 
@@ -197,7 +197,7 @@ sub getTrackAndRadioUrl {
 my @HEADER_DATA = map {
 	# s/=*$|\s//sg;
 	MIME::Base64::decode_base64($_);
-} <Plugins::MusicArtistInfo::Common::DATA>;
+} <Plugins::MusicArtistInfoMosaicly::Common::DATA>;
 
 $HEADER_DATA[CAN_DISCOGS] = eval { decode_json($HEADER_DATA[CAN_DISCOGS]) };
 
@@ -290,7 +290,7 @@ sub getExternalLinks {
 			next if $id eq 'url';   # we have a separate link for that
 		}
 
-		my $label = 'PLUGIN_MUSICARTISTINFO_' . uc($id);
+		my $label = 'PLUGIN_MUSICARTISTINFOMOSAICLY_' . uc($id);
 		my $label = Slim::Utils::Strings::stringExists($label)
 			? cstring($client, $label)
 			: ucfirst($id);
@@ -301,10 +301,10 @@ sub getExternalLinks {
 	if ($release_mbid) {
 		# add MusicBrainz release link (we might only have the release group link)
 		my $mbUrl = 'https://musicbrainz.org/release/' . $release_mbid;
-		$linkList .= '<li><a href="' . $mbUrl . '" target="_blank">' . cstring($client, 'PLUGIN_MUSICARTISTINFO_MUSICBRAINZ_RELEASE') . '</a></li>';
+		$linkList .= '<li><a href="' . $mbUrl . '" target="_blank">' . cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_MUSICBRAINZ_RELEASE') . '</a></li>';
 	}
 
-	return $linkList ? sprintf("<h4>%s</h4><ul class=\"maiExternalLinksList\">%s</ul>", cstring($client, 'PLUGIN_MUSICARTISTINFO_READ_MORE'), $linkList) : '';
+	return $linkList ? sprintf("<h4>%s</h4><ul class=\"maiExternalLinksList\">%s</ul>", cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_READ_MORE'), $linkList) : '';
 }
 
 

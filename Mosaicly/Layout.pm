@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Layout;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout;
 
 use strict;
 use warnings;

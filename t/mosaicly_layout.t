@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 
 require './Mosaicly/Layout.pm';
-my $layout = 'Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $layout = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 
 sub indices {
     my ($cells) = @_;

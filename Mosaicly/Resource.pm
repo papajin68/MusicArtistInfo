@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Resource;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Resource;
 use strict;
 use warnings;
 use Errno qw(ENOENT);

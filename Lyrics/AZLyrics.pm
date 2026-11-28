@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Lyrics::AZLyrics;
+package Plugins::MusicArtistInfoMosaicly::Lyrics::AZLyrics;
 
 use strict;
 
@@ -21,7 +21,7 @@ sub getLyrics {
 	my $title  = _cleanupName($args->{title});
 	my $url    = sprintf(GET_LYRICS_URL, $artist, $title);
 
-	Plugins::MusicArtistInfo::Common->call($url, sub {
+	Plugins::MusicArtistInfoMosaicly::Common->call($url, sub {
 		my $result = shift;
 
 		my $tree = HTML::TreeBuilder->new;

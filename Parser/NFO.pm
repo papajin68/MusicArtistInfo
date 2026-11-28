@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Parser::NFO;
+package Plugins::MusicArtistInfoMosaicly::Parser::NFO;
 
 use strict;
 use File::Slurp;
@@ -13,7 +13,7 @@ my $types = {
 	thumb     => 'image',
 };
 
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 
 sub parse {
 	my ($class, $path) = @_;
@@ -84,7 +84,7 @@ sub renderAsHTML {
 
 	$response->content_type('text/html');
 	$response->header('Connection' => 'close');
-	$response->content_ref(Slim::Web::HTTP::filltemplatefile('/plugins/MusicArtistInfo/nfo.html', {
+	$response->content_ref(Slim::Web::HTTP::filltemplatefile('/plugins/MusicArtistInfoMosaicly/nfo.html', {
 		title => $data->{title},
 		webroot => '/',
 		path => $response->request->uri->path,
@@ -125,7 +125,7 @@ sub renderAsOPML {
 			push @$items, {
 				type => 'outline',
 				name => $item->{title},
-				items => Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $item->{value}),
+				items => Plugins::MusicArtistInfoMosaicly::Plugin->textAreaItem($client, $params->{isButton}, $item->{value}),
 			};
 		}
 		else {

@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::LocalArtwork;
+package Plugins::MusicArtistInfoMosaicly::LocalArtwork;
 
 use strict;
 use File::Basename qw(dirname basename);
@@ -13,12 +13,12 @@ use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
 
-use Plugins::MusicArtistInfo::Common qw( CAN_LMS_ARTIST_ARTWORK );
+use Plugins::MusicArtistInfoMosaicly::Common qw( CAN_LMS_ARTIST_ARTWORK );
 
-*_imageInFolder = \&Plugins::MusicArtistInfo::Common::imageInFolder;
+*_imageInFolder = \&Plugins::MusicArtistInfoMosaicly::Common::imageInFolder;
 
-my $log   = logger('plugin.musicartistinfo');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log   = logger('plugin.musicartistinfomosaicly');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $serverprefs = preferences('server');
 my $cache = Slim::Utils::Cache->new;
 my ($defaultArtistImg, $fallbackArtistImg, $checkFallbackArtistImg, $imageCacheDir);
@@ -62,7 +62,7 @@ sub init {
 			func  => \&artworkUrl,
 		);
 
-		$defaultArtistImg = Slim::Web::HTTP::getSkinManager->fixHttpPath($serverprefs->get('skin'), '/plugins/MusicArtistInfo/html/artist.png');
+		$defaultArtistImg = Slim::Web::HTTP::getSkinManager->fixHttpPath($serverprefs->get('skin'), '/plugins/MusicArtistInfoMosaicly/html/artist.png');
 
 		_initDefaultArtistImg();
 		$prefs->setChange(\&_initDefaultArtistImg, 'artistImageFolder');
@@ -199,7 +199,7 @@ sub trackInfoHandler { if (!main::SCANNER) {
 	$items = [ sort { lc($a->{name}) cmp lc($b->{name}) } @$items ];
 
 	return {
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_LOCAL_ARTWORK'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_LOCAL_ARTWORK'),
 		# we don't want slideshow mode on controllers, but web UI only
 		type => ($client && $client->controllerUA || '') =~ /squeezeplay/i ? 'outline' : 'slideshow',
 		items => $items,
@@ -259,7 +259,7 @@ sub getArtistPhoto {
 	}
 
 	my $img;
-	my $candidates = Plugins::MusicArtistInfo::Common::getLocalnameVariants($artist);
+	my $candidates = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($artist);
 
 	foreach my $imageFolder ($prefs->get('artistImageFolder'), $serverprefs->get('artfolder'), catdir($serverprefs->get('cachedir'), 'mai_portraits')) {
 		next unless $imageFolder && -d $imageFolder;

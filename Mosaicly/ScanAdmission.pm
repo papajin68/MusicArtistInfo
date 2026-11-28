@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::ScanAdmission;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdmission;
 use strict;
 use warnings;
 

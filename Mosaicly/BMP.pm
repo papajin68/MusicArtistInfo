@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::BMP;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::BMP;
 use strict;
 use warnings;
 use bytes;

@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Coordinator;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator;
 
 use strict;
 use warnings;
@@ -7,13 +7,13 @@ use File::Path qw(remove_tree);
 use Cwd qw(abs_path);
 use JSON::PP;
 use Digest::SHA qw(sha256_hex);
-use Plugins::MusicArtistInfo::Mosaicly::Process;
-use Plugins::MusicArtistInfo::Mosaicly::Runtime;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Process;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime;
 
 # One reserved directory per configured private root. A leftover directory
 # after a server crash blocks admission; do not guess that its worker died.
 # Lyrion owns scheduling and calls poll from its normal timer/event loop.
-my $process = 'Plugins::MusicArtistInfo::Mosaicly::Process';
+my $process = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Process';
 my $json = JSON::PP->new->utf8->canonical->max_depth(16);
 
 sub _fail { +{ok=>0,reason=>$_[0]} }
@@ -46,7 +46,7 @@ sub busy {
     my ($self)=@_;
     return !!($self->{active} || -e $self->{dir} || -l $self->{dir}
         || (defined($self->{ownership}) &&
-            !Plugins::MusicArtistInfo::Mosaicly::Runtime->ownershipClear($self->{ownership})));
+            !Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime->ownershipClear($self->{ownership})));
 }
 
 # Request a bounded natural drain. Do not signal the timeout wrapper,
@@ -113,7 +113,7 @@ sub _release_ownership {
         && $st[0]==$owned->[0] && $st[1]==$owned->[1];
     return 0 unless rmdir($self->{ownership});
     delete $self->{owned_marker};
-    return Plugins::MusicArtistInfo::Mosaicly::Runtime->ownershipClear($self->{ownership});
+    return Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime->ownershipClear($self->{ownership});
 }
 
 sub _cleanup {

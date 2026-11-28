@@ -8,8 +8,8 @@ use Digest::SHA qw(sha256_hex);
 
 load_native();
 
-my $c = 'Plugins::MusicArtistInfo::Mosaicly::Compositor';
-my $layout = 'Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $c = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
+my $layout = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 
 diag("Perl: $^V");
 diag("Image::Scale: $Image::Scale::VERSION");

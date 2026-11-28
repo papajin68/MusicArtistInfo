@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::AlbumInfo;
+package Plugins::MusicArtistInfoMosaicly::AlbumInfo;
 
 use strict;
 
@@ -7,16 +7,16 @@ use Slim::Menu::TrackInfo;
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Log;
 
-use Plugins::MusicArtistInfo::ArtistInfo;
-use Plugins::MusicArtistInfo::Common qw(CLICOMMAND CAN_IMAGEPROXY validateLanguage REVIEW_TYPE_ALBUM REVIEW_TYPE_TRACK);
-use Plugins::MusicArtistInfo::Discogs;
-use Plugins::MusicArtistInfo::LFM;
-use Plugins::MusicArtistInfo::MusicBrainz;
-use Plugins::MusicArtistInfo::Wikipedia;
+use Plugins::MusicArtistInfoMosaicly::ArtistInfo;
+use Plugins::MusicArtistInfoMosaicly::Common qw(CLICOMMAND CAN_IMAGEPROXY validateLanguage REVIEW_TYPE_ALBUM REVIEW_TYPE_TRACK);
+use Plugins::MusicArtistInfoMosaicly::Discogs;
+use Plugins::MusicArtistInfoMosaicly::LFM;
+use Plugins::MusicArtistInfoMosaicly::MusicBrainz;
+use Plugins::MusicArtistInfoMosaicly::Wikipedia;
 
-*_cleanupAlbumName = \&Plugins::MusicArtistInfo::Common::cleanupAlbumName;
+*_cleanupAlbumName = \&Plugins::MusicArtistInfoMosaicly::Common::cleanupAlbumName;
 
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 
 sub init {
 #                                                                     |requires Client
@@ -63,14 +63,14 @@ sub getAlbumMenu {
 
 	if ( !$params->{isButton} ) {
 		unshift @$items, {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ALBUMREVIEW'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ALBUMREVIEW'),
 			type => 'link',
 			url  => \&getAlbumReview,
 			passthrough => $pt,
 		};
 
 		push @$items, {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ALBUM_COVER'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ALBUM_COVER'),
 			# we don't want slideshow mode on controllers, but web UI only
 			type => ($client && $client->controllerUA || '') =~ /squeezeplay/i ? 'link' : 'slideshow',
 			url  => \&getAlbumCovers,
@@ -91,7 +91,7 @@ sub getAlbumMenu {
 sub getAlbumReview {
 	my ($client, $cb, $params, $args) = @_;
 
-	if ( my $review = Plugins::MusicArtistInfo::LocalFile->getAlbumReview($client, $params, $args) ) {
+	if ( my $review = Plugins::MusicArtistInfoMosaicly::LocalFile->getAlbumReview($client, $params, $args) ) {
 		$cb->($review);
 		return;
 	}
@@ -99,7 +99,7 @@ sub getAlbumReview {
 	$args->{lang} ||= validateLanguage($client, $args->{lang});
 
 	if (!$args->{album} && $args->{title}) {
-		return Plugins::MusicArtistInfo::API->getTrackReviewId(
+		return Plugins::MusicArtistInfoMosaicly::API->getTrackReviewId(
 			sub {
 				renderReview($client, REVIEW_TYPE_TRACK, shift, $params, $args, $cb);
 			},
@@ -109,7 +109,7 @@ sub getAlbumReview {
 
 	$args->{title} = $args->{album};
 
-	Plugins::MusicArtistInfo::API->getAlbumReviewId(
+	Plugins::MusicArtistInfoMosaicly::API->getAlbumReviewId(
 		sub {
 			renderReview($client, REVIEW_TYPE_ALBUM, shift, $params, $args, $cb);
 		},
@@ -129,8 +129,8 @@ sub renderReview {
 		$reviewData->{url} ||= $review->{url} || {};
 
 		if ($review->{error}) {
-			if (keys %$reviewData && Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params)) {
-				$review->{error} = sprintf("<p>%s</p>\n%s", $review->{error}, Plugins::MusicArtistInfo::Common::getExternalLinks($client, $reviewData, $mbid));
+			if (keys %$reviewData && Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client, $params)) {
+				$review->{error} = sprintf("<p>%s</p>\n%s", $review->{error}, Plugins::MusicArtistInfoMosaicly::Common::getExternalLinks($client, $reviewData, $mbid));
 			}
 
 			$items = [{
@@ -140,25 +140,25 @@ sub renderReview {
 		}
 		elsif ($review->{review}) {
 			my $content = '';
-			if ( Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params) ) {
+			if ( Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client, $params) ) {
 				$content = '<h4>' . $review->{author} . '</h4>' if $review->{author};
 				$content .= '<div><img src="' . $review->{image} . '" onerror="this.style.display=\'none\'"></div>' if $review->{image};
 				$content .= $review->{review};
-				$content .= Plugins::MusicArtistInfo::Common::getExternalLinks($client, $reviewData, $mbid);
+				$content .= Plugins::MusicArtistInfoMosaicly::Common::getExternalLinks($client, $reviewData, $mbid);
 			}
 			else {
 				$content = $review->{author} . '\n\n' if $review->{author};
 				$content .= $review->{reviewText};
 			}
 
-			$items = Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $content);
+			$items = Plugins::MusicArtistInfoMosaicly::Plugin->textAreaItem($client, $params->{isButton}, $content);
 		}
 
 		$cb->($items);
 	};
 
 	if ($reviewData && (my $pageData = $reviewData->{wikidata})) {
-		Plugins::MusicArtistInfo::Wikipedia->getPage($client, sub {
+		Plugins::MusicArtistInfoMosaicly::Wikipedia->getPage($client, sub {
 			my $review = shift;
 
 			if ($review && $review->{content} && $review->{contentText}) {
@@ -170,7 +170,7 @@ sub renderReview {
 				return $reviewCb->();
 			}
 
-			Plugins::MusicArtistInfo::Wikipedia->getAlbumOrWorkReview($client, $reviewCb, $type, $args);
+			Plugins::MusicArtistInfoMosaicly::Wikipedia->getAlbumOrWorkReview($client, $reviewCb, $type, $args);
 		}, {
 			title => $pageData->{title},
 			id => $pageData->{pageid},
@@ -181,7 +181,7 @@ sub renderReview {
 		return $reviewCb->();
 	}
 	else {
-		Plugins::MusicArtistInfo::Wikipedia->getAlbumOrWorkReview($client, $reviewCb, $type, $args);
+		Plugins::MusicArtistInfoMosaicly::Wikipedia->getAlbumOrWorkReview($client, $reviewCb, $type, $args);
 	}
 }
 
@@ -226,7 +226,7 @@ sub getAlbumCovers {
 
 		if ( !scalar @$items ) {
 			$items = [{
-				name => $covers->{lfm}->{error} || $covers->{discogs}->{error}  || cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'),
+				name => $covers->{lfm}->{error} || $covers->{discogs}->{error}  || cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'),
 				type => 'text'
 			}];
 		}
@@ -278,7 +278,7 @@ sub getAlbumCoversCLI {
 	}
 
 	if ( !$args || (!($args->{artist} && $args->{album}) && !$args->{mbid}) ) {
-		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		$request->setStatusDone();
 		return;
 	}
@@ -336,7 +336,7 @@ sub getAlbumCoversCLI {
 
 	# there's a rate limiting issue on discogs.com: don't use it without imageproxy, as this seems to work around the limitation...
 	if (CAN_IMAGEPROXY) {
-		Plugins::MusicArtistInfo::Discogs->getAlbumCovers($client, sub {
+		Plugins::MusicArtistInfoMosaicly::Discogs->getAlbumCovers($client, sub {
 			$results->{discogs} = shift || {};
 			$getAlbumCoversCb->($results);
 		}, $args);
@@ -345,12 +345,12 @@ sub getAlbumCoversCLI {
 		$results->{discogs} = {};
 	}
 
-	Plugins::MusicArtistInfo::MusicBrainz->getAlbumCovers($client, sub {
+	Plugins::MusicArtistInfoMosaicly::MusicBrainz->getAlbumCovers($client, sub {
 		$results->{musicbrainz} = shift || {};
 		$getAlbumCoversCb->($results);
 	}, $args);
 
-	Plugins::MusicArtistInfo::LFM->getAlbumCovers($client, sub {
+	Plugins::MusicArtistInfoMosaicly::LFM->getAlbumCovers($client, sub {
 		$results->{lfm} = shift || {};
 		$getAlbumCoversCb->($results);
 	}, $args);
@@ -385,17 +385,17 @@ sub getAlbumReviewCLI {
 
 	# try to find track information if we don't have an album title
 	if ( $args->{artist} && !$args->{album} && !$args->{title} ) {
-		my $track = Plugins::MusicArtistInfo::Common::getTrackAndRadioUrl($client, $args);
+		my $track = Plugins::MusicArtistInfoMosaicly::Common::getTrackAndRadioUrl($client, $args);
 
 		if ( $track && $track->isRemoteURL ) {
-			if ( my $meta = Plugins::MusicArtistInfo::Common::getMetadataFor($client, $track) ) {
+			if ( my $meta = Plugins::MusicArtistInfoMosaicly::Common::getMetadataFor($client, $track) ) {
 				$args->{title} = _cleanupAlbumName($meta->{title});
 			}
 		}
 	}
 
 	if ( !($args && $args->{artist} && ($args->{album} || $args->{title})) ) {
-		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		$request->setStatusDone();
 		return;
 	}
@@ -412,7 +412,7 @@ sub getAlbumReviewCLI {
 				$request->addResult('artist', $args->{artist}) if $args->{artist};
 			});
 		},{
-			isWeb  => $request->getParam('html') || Plugins::MusicArtistInfo::Plugin->isWebBrowser($client),
+			isWeb  => $request->getParam('html') || Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client),
 		}, $args
 	);
 }
@@ -420,7 +420,7 @@ sub getAlbumReviewCLI {
 sub renderReviewCLIResponse {
 	my ($request, $items, $cb) = @_;
 	my $client = $request->client();
-	my $defaultError = cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+	my $defaultError = cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 	$items ||= [];
 
 	if (ref $items && ref $items eq 'HASH' && $items->{items}) {
@@ -492,7 +492,7 @@ sub _objInfoHandler {
 	my $items = getAlbumMenu($client, undef, $args);
 
 	return {
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_ALBUMINFO'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_ALBUMINFO'),
 		type => 'outline',
 		items => $items,
 		passthrough => [ $args ],

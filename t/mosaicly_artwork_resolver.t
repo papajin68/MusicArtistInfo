@@ -62,7 +62,7 @@ BEGIN { $INC{'Slim/Schema.pm'} = __FILE__; $INC{'Slim/Music/Artwork.pm'} = __FIL
     sub readCoverArt { die 'must not rediscover' }
     sub _readCoverArtFiles { die 'must not search filesystem' }
 }
-my $class = 'Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver';
+my $class = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver';
 my $art = '7993d16a';
 sub reset_state {
     @calls = ();

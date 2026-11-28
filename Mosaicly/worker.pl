@@ -144,8 +144,8 @@ die 'native locale map unavailable'
         && keys %{Slim::Utils::Strings::getLocales()};
 require Slim::Schema;
 die 'unexpected initialized library' if Slim::Schema->hasLibrary();
-require Plugins::MusicArtistInfo::Mosaicly::Generator;
-my $r=Plugins::MusicArtistInfo::Mosaicly::Generator->generate(
+require Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator;
+my $r=Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator->generate(
     contributor_id=>$job->{contributor_id},job=>$job,
     bounded_worker_progressive=>1);
 die 'worker attempted database connection' if $db_attempted;

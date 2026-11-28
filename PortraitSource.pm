@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::PortraitSource;
+package Plugins::MusicArtistInfoMosaicly::PortraitSource;
 use strict;
 use warnings;
 use Exporter 'import';

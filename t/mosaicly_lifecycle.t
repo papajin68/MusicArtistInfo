@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 require './Mosaicly/Lifecycle.pm';
-my $class='Plugins::MusicArtistInfo::Mosaicly::Lifecycle';
+my $class='Plugins::MusicArtistInfoMosaicly::Mosaicly::Lifecycle';
 {
     package FakeServer;
     sub shutdown { ++$_[0]{shutdowns}; return 0 }
@@ -53,7 +53,7 @@ SKIP: {
     my $root=File::Temp::tempdir(CLEANUP=>1);
     mkdir "$root/cache" or die $!;
     mkdir "$root/temp" or die $!;
-    my $runtime='Plugins::MusicArtistInfo::Mosaicly::Runtime';
+    my $runtime='Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime';
     my %args=(cache=>"$root/cache",temporary=>"$root/temp");
     my $p=$runtime->paths(%args);
     ok(-d $p->{jobs},'jobs directory');

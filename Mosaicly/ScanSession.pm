@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::ScanSession;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanSession;
 use strict;
 use warnings;
 use Scalar::Util qw(blessed refaddr);

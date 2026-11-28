@@ -1,15 +1,15 @@
-package Plugins::MusicArtistInfo::Discogs;
+package Plugins::MusicArtistInfoMosaicly::Discogs;
 
 use strict;
 
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
 
-use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY);
+use Plugins::MusicArtistInfoMosaicly::Common qw(CAN_IMAGEPROXY);
 
 use constant BASE_URL => 'https://api.discogs.com/';
 
-my $log   = logger('plugin.musicartistinfo');
+my $log   = logger('plugin.musicartistinfomosaicly');
 my $cache = Slim::Utils::Cache->new();
 
 my $bucket;
@@ -99,7 +99,7 @@ sub getAlbumCovers {
 				}
 
 				if ( !$result->{images} && !main::SCANNER ) {
-					$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+					$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 				}
 
 				$cb->($result);
@@ -107,7 +107,7 @@ sub getAlbumCovers {
 		}
 		else {
 			$cb->(main::SCANNER ? undef : {
-				error => Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND')
+				error => Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND')
 			});
 		}
 	}, $args);
@@ -194,7 +194,7 @@ sub getDiscography {
 			}
 
 			if ( !$result->{releases} ) {
-				$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+				$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 			}
 
 			$cb->($result);
@@ -290,8 +290,8 @@ sub _call {
 		}
 	};
 
-	Plugins::MusicArtistInfo::Common->call(
-		($resource =~ /^https?:/ ? $resource : (BASE_URL . $resource)) . '?' . join( '&', Plugins::MusicArtistInfo::Common->getQueryString($args) ),
+	Plugins::MusicArtistInfoMosaicly::Common->call(
+		($resource =~ /^https?:/ ? $resource : (BASE_URL . $resource)) . '?' . join( '&', Plugins::MusicArtistInfoMosaicly::Common->getQueryString($args) ),
 		sub {
 			# sync available requests from Discogs with internal rate limiter
 			if ($bucket) {
@@ -307,7 +307,7 @@ sub _call {
 		{
 			cache   => 1,
 			expires => '60d',	# force caching - discogs doesn't set the appropriate headers
-			headers => Plugins::MusicArtistInfo::Common->getHeaders('discogs')
+			headers => Plugins::MusicArtistInfoMosaicly::Common->getHeaders('discogs')
 		}
 	);
 }

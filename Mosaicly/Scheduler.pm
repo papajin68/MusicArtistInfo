@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Scheduler;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Scheduler;
 use strict;
 use warnings;
 use Scalar::Util qw(refaddr);

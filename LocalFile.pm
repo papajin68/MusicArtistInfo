@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::LocalFile;
+package Plugins::MusicArtistInfoMosaicly::LocalFile;
 
 use strict;
 use File::Basename qw(dirname basename);
@@ -30,11 +30,11 @@ use Slim::Utils::Prefs;
 
 use Slim::Web::Pages;
 
-use Plugins::MusicArtistInfo::Common qw(CLICOMMAND);
+use Plugins::MusicArtistInfoMosaicly::Common qw(CLICOMMAND);
 
-my $log   = logger('plugin.musicartistinfo');
-my $onlineLog = logger('plugin.musicartistinfo.online');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log   = logger('plugin.musicartistinfomosaicly');
+my $onlineLog = logger('plugin.musicartistinfomosaicly.online');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $cache = Slim::Utils::Cache->new;
 
 my $URL_PARSER_RE = qr{mai/localfile/([a-f\d]+)/(.*)$};
@@ -88,8 +88,8 @@ sub getAlbumReview {
 	}
 
 	if ( !$review && $args->{album} && $args->{artist} && (my $reviewFolder = $prefs->get('reviewFolder')) ) {
-		my $artists = Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{artist});
-		my $candidates = Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{album});
+		my $artists = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{artist});
+		my $candidates = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{album});
 
 		my $folders = [ map { catdir($reviewFolder, $_) } @$artists ];
 		$review = _getInfoFileFromFolder($client, $folders, 'review', ['nfo', 'md', 'html', 'htm', 'txt'], $candidates, $params);
@@ -142,7 +142,7 @@ sub getBiography {
 	my $biography = _getInfoFileForTrackFromDb($client, $sth, 'biography', ['artist.nfo', 'artist.md', 'biography.html?', 'biography.md', 'bio.html?', 'biography.txt', 'bio.txt', 'bio.md'], $params);
 
 	if ( !$biography && $args->{artist} && (my $bioFolder = $prefs->get('bioFolder')) ) {
-		my $candidates = Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{artist});
+		my $candidates = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{artist});
 		$biography = _getInfoFileFromFolder($client, $bioFolder, 'biography', ['nfo', 'md', 'html', 'htm', 'txt'], $candidates, $params);
 	}
 
@@ -187,7 +187,7 @@ sub _getInfoFileFromFolder {
 	my $file;
 	foreach my $folder ( @$folders ) {
 		$folder =~ s/\.$//;
-		$file = Plugins::MusicArtistInfo::Common::fileInFolder($folder, $extensions, @$candidates);
+		$file = Plugins::MusicArtistInfoMosaicly::Common::fileInFolder($folder, $extensions, @$candidates);
 		last if $file;
 	}
 
@@ -246,9 +246,9 @@ sub trackInfoHandler {
 	return unless scalar @$files;
 
 	# XMLBrowser for Jive can't handle weblinks - need custom handling there to show files in the browser.
-	if ( Plugins::MusicArtistInfo::Plugin->canWeblink($client) )  {
+	if ( Plugins::MusicArtistInfoMosaicly::Plugin->canWeblink($client) )  {
 		return {
-			name => cstring($client, 'PLUGIN_MUSICARTISTINFO_LOCAL_FILES'),
+			name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_LOCAL_FILES'),
 			itemActions => {
 				items => {
 					command  => [ CLICOMMAND, 'localfiles' ],
@@ -274,7 +274,7 @@ sub trackInfoHandler {
 	} @$files ];
 
 	return {
-		name => cstring($client, 'PLUGIN_MUSICARTISTINFO_LOCAL_FILES'),
+		name => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_LOCAL_FILES'),
 		type => 'outline',
 		items => $items,
 	};
@@ -397,25 +397,25 @@ sub getFileContent {
 	my $type = __PACKAGE__->mimeType($path);
 	$params ||= {};
 
-	my $content = cstring($client, 'PLUGIN_MUSICARTISTINFO_UNSUPPORTED_CT');
-	my $isWebBrowser = Plugins::MusicArtistInfo::Plugin->isWebBrowser($client, $params);
+	my $content = cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_UNSUPPORTED_CT');
+	my $isWebBrowser = Plugins::MusicArtistInfoMosaicly::Plugin->isWebBrowser($client, $params);
 
 	my $items;
 
 	if ( $path =~ /\.nfo$/i ) {
-		require Plugins::MusicArtistInfo::Parser::NFO;
-		$items = Plugins::MusicArtistInfo::Parser::NFO->renderAsOPML($client, $path, $params);
+		require Plugins::MusicArtistInfoMosaicly::Parser::NFO;
+		$items = Plugins::MusicArtistInfoMosaicly::Parser::NFO->renderAsOPML($client, $path, $params);
 		$content = '';
 	}
 	elsif ( $path =~ /\.md$/i && $isWebBrowser ) {
-		require Plugins::MusicArtistInfo::Parser::Markdown;
-		$content = '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfo/html/mai.css" />';
-		$content .= Plugins::MusicArtistInfo::Parser::Markdown->parseToHTML($path);
+		require Plugins::MusicArtistInfoMosaicly::Parser::Markdown;
+		$content = '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfoMosaicly/html/mai.css" />';
+		$content .= Plugins::MusicArtistInfoMosaicly::Parser::Markdown->parseToHTML($path);
 		$content =~ s/\n+//sg;
 	}
 	elsif ( $path =~ /\.md$/i ) {
-		require Plugins::MusicArtistInfo::Parser::Markdown;
-		$content = Plugins::MusicArtistInfo::Parser::Markdown->parse($path);
+		require Plugins::MusicArtistInfoMosaicly::Parser::Markdown;
+		$content = Plugins::MusicArtistInfoMosaicly::Parser::Markdown->parse($path);
 	}
 	elsif ( $type =~ /html/ && !$isWebBrowser ) {
 		require HTML::FormatText;
@@ -433,7 +433,7 @@ sub getFileContent {
 		# we're going to assume that HTML nowadays is in utf8...
 		$content = Slim::Utils::Unicode::utf8on($content) if $type =~ /html/;
 		$content = Slim::Utils::Unicode::utf8decode($content);
-		$items = Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $content);
+		$items = Plugins::MusicArtistInfoMosaicly::Plugin->textAreaItem($client, $params->{isButton}, $content);
 	}
 
 	if ($cb) {
@@ -472,16 +472,16 @@ sub _proxyHandler {
 	}
 
 	if ( $path =~ /\.nfo$/i ) {
-		require Plugins::MusicArtistInfo::Parser::NFO;
-		return Plugins::MusicArtistInfo::Parser::NFO->renderAsHTML($httpClient, $response, $path);
+		require Plugins::MusicArtistInfoMosaicly::Parser::NFO;
+		return Plugins::MusicArtistInfoMosaicly::Parser::NFO->renderAsHTML($httpClient, $response, $path);
 	}
 	elsif ( $path =~ /\.md$/i ) {
-		require Plugins::MusicArtistInfo::Parser::Markdown;
-		return Plugins::MusicArtistInfo::Parser::Markdown->renderAsHTML($httpClient, $response, $path);
+		require Plugins::MusicArtistInfoMosaicly::Parser::Markdown;
+		return Plugins::MusicArtistInfoMosaicly::Parser::Markdown->renderAsHTML($httpClient, $response, $path);
 	}
 	elsif ( $path =~ /\.html?$/i ) {
-		require Plugins::MusicArtistInfo::Parser::HTML;
-		return Plugins::MusicArtistInfo::Parser::HTML->renderAsHTML($httpClient, $response, $path);
+		require Plugins::MusicArtistInfoMosaicly::Parser::HTML;
+		return Plugins::MusicArtistInfoMosaicly::Parser::HTML->renderAsHTML($httpClient, $response, $path);
 	}
 
 	$response->code(RC_OK);

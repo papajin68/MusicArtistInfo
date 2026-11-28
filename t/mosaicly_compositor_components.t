@@ -6,10 +6,10 @@ require './Mosaicly/NormalizedPNG.pm';
 require './Mosaicly/RGB.pm';
 require './Mosaicly/BMP.pm';
 require './Mosaicly/Layout.pm';
-my $png='Plugins::MusicArtistInfo::Mosaicly::NormalizedPNG';
-my $rgb='Plugins::MusicArtistInfo::Mosaicly::RGB';
-my $bmp='Plugins::MusicArtistInfo::Mosaicly::BMP';
-my $layout='Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $png='Plugins::MusicArtistInfoMosaicly::Mosaicly::NormalizedPNG';
+my $rgb='Plugins::MusicArtistInfoMosaicly::Mosaicly::RGB';
+my $bmp='Plugins::MusicArtistInfoMosaicly::Mosaicly::BMP';
+my $layout='Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 my $sig="\x89PNG\r\n\x1a\n";
 sub chunk { my ($t,$d)=@_; pack('N',length($d)).$t.$d.pack('N',crc32($t.$d)) }
 sub header { chunk('IHDR',pack('NNCCCCC',@_)) }

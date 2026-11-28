@@ -9,8 +9,8 @@ use Digest::SHA qw(sha256_hex);
 
 load_native();
 
-my $c = 'Plugins::MusicArtistInfo::Mosaicly::Compositor';
-my $layout = 'Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $c = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
+my $layout = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 
 my $progressive = decode_base64(<<'BASE64');
 /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoH

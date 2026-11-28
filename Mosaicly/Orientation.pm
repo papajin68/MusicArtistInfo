@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Orientation;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Orientation;
 
 use strict;
 use warnings;

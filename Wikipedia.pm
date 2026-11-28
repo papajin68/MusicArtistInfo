@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Wikipedia;
+package Plugins::MusicArtistInfoMosaicly::Wikipedia;
 
 use strict;
 
@@ -11,7 +11,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string cstring);
 
-use Plugins::MusicArtistInfo::Common qw(CAN_IMAGEPROXY validateLanguage);
+use Plugins::MusicArtistInfoMosaicly::Common qw(CAN_IMAGEPROXY validateLanguage);
 
 use constant MIN_REVIEW_SIZE => 50;
 use constant PAGE_URL => 'https://%s.wikipedia.org/wiki/%s';
@@ -44,8 +44,8 @@ my $searchTypes = {
 	},
 };
 
-my $log = logger('plugin.musicartistinfo');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 
 sub _rank {
 	my $item = shift;
@@ -69,7 +69,7 @@ sub getAlbumOrWorkReview {
 	# need to localize "$type" - see https://forums.lyrion.org/node/1813577
 	my $localizedType = $searchTypes->{$type}->{uc($lang)} || $searchTypes->{$type}->{EN} || $type;
 
-	Plugins::MusicArtistInfo::Common->call(
+	Plugins::MusicArtistInfoMosaicly::Common->call(
 		sprintf(SEARCH_URL, $lang, uri_escape_utf8('"' . $args->{title} . '" ' . $localizedType . ' "' . $args->{artist} . '"')),
 		sub {
 			my $searchResults = shift;
@@ -138,7 +138,7 @@ sub getAlbumOrWorkReview {
 sub getBiography {
 	my ( $class, $client, $cb, $args ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call(
+	Plugins::MusicArtistInfoMosaicly::Common->call(
 		sprintf(SEARCH_URL, validateLanguage($client, $args->{lang}), uri_escape_utf8($args->{artist})),
 		sub {
 			my $searchResults = shift;
@@ -196,11 +196,11 @@ sub getPage {
 
 	if (!$args->{id}) {
 		return $cb->({
-			error => cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND')
+			error => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND')
 		});
 	}
 
-	Plugins::MusicArtistInfo::Common->call(
+	Plugins::MusicArtistInfoMosaicly::Common->call(
 		sprintf(FETCH_URL, validateLanguage($client, $args->{lang}), uri_escape_utf8($args->{id})),
 		sub {
 			my $fetchResults = shift;
@@ -219,7 +219,7 @@ sub getPage {
 					} split(/\n/, $result->{content}));
 
 					$result->{contentText} = _removeMarkup($result->{content});
-					$result->{content} = '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfo/html/mai.css" />'
+					$result->{content} = '<link rel="stylesheet" type="text/css" href="/plugins/MusicArtistInfoMosaicly/html/mai.css" />'
 						. $result->{content}
 						. '<div>(' . cstring($client, 'SOURCE') . cstring($client, 'COLON') . ' Wikipedia)</div>';
 
@@ -230,7 +230,7 @@ sub getPage {
 			}
 
 			if ( !$result->{content} && !main::SCANNER ) {
-				$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+				$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 			}
 
 			$cb->($result);

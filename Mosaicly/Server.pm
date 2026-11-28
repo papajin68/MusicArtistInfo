@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Server;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Server;
 
 use strict;
 use warnings;
@@ -6,9 +6,9 @@ use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use Time::HiRes qw(time);
 use Scalar::Util qw(weaken);
-use Plugins::MusicArtistInfo::Mosaicly::Generator;
-use Plugins::MusicArtistInfo::Mosaicly::Coordinator;
-use Plugins::MusicArtistInfo::Mosaicly::Publisher;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher;
 
 sub _fail { +{ok=>0,reason=>$_[0]} }
 
@@ -25,7 +25,7 @@ sub new {
     die 'native EV loop unavailable' unless $INC{'EV.pm'};
     my $lib=scalar Slim::Utils::OSDetect::dirsFor('libpath');
     my $perl=abs_path($^X);
-    my $module=abs_path($INC{'Plugins/MusicArtistInfo/Mosaicly/Server.pm'});
+    my $module=abs_path($INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/Server.pm'});
     die 'native runtime unavailable' unless $lib && -d $lib && $perl && $module;
     my $worker=dirname($module).'/worker.pl';
     my $pluginparent=dirname(dirname(dirname(dirname($module))));
@@ -34,13 +34,13 @@ sub new {
         grep { defined($_) && !ref($_) && m{\A/} && -d $_ }
         ($pluginparent,@INC);
     my $self=bless {admit=>$a{admit},current=>$a{current}},$class;
-    $self->{coordinator}=Plugins::MusicArtistInfo::Mosaicly::Coordinator->new(
+    $self->{coordinator}=Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator->new(
         root=>$a{jobs},library=>abs_path($lib),worker=>$worker,
         includes=>\@includes,perl=>$perl,ev=>1,ownership=>$a{ownership});
     # Guard is bound to the specific active epoch, not just current idle status.
     my $owner=$self;
     weaken($owner);
-    $self->{publisher}=Plugins::MusicArtistInfo::Mosaicly::Publisher->new(
+    $self->{publisher}=Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher->new(
         root=>$a{portraits},current=>sub {
             $owner && !$owner->{stopped} && $owner->{active} && $owner->{current}->($owner->{active}{epoch});
         });
@@ -74,7 +74,7 @@ sub start {
     return _fail('admission_denied') unless $self->{admit}->();
     my $identity=eval {$self->{publisher}->identity($a{contributor_id})};
     return _fail('artist_unavailable') unless $identity;
-    my $job=Plugins::MusicArtistInfo::Mosaicly::Generator->prepare_job(
+    my $job=Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator->prepare_job(
         contributor_id=>$a{contributor_id});
     return $job unless $job->{ok};
     return _fail('no_usable_artwork') unless grep { $_->{source}{ok} } @{$job->{entries}};

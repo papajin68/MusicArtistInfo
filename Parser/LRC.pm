@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Parser::LRC;
+package Plugins::MusicArtistInfoMosaicly::Parser::LRC;
 
 use strict;
 
@@ -9,7 +9,7 @@ use Slim::Utils::Strings;
 
 # parse lyrics file according to https://en.wikipedia.org/wiki/LRC_(file_format)
 
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 my $instrumentalString;
 
 sub parse {
@@ -28,7 +28,7 @@ sub parse {
 sub strip {
 	my ($class, $content, $keepTimestamps) = @_;
 
-	$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
+	$instrumentalString ||= Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFOMOSAICLY_INSTRUMENTAL');
 
 	# only show empty lines if they come in line, but not at the top of the file
 	my $textFound = 0;

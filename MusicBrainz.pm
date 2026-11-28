@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::MusicBrainz;
+package Plugins::MusicArtistInfoMosaicly::MusicBrainz;
 
 use strict;
 use URI::Escape qw(uri_escape uri_escape_utf8);
@@ -6,7 +6,7 @@ use URI::Escape qw(uri_escape uri_escape_utf8);
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 
-my $log   = logger('plugin.musicartistinfo');
+my $log   = logger('plugin.musicartistinfomosaicly');
 
 use constant BASE_URL => 'http://musicbrainz.org/ws/2/';
 use constant ART_BASE_URL => 'http://coverartarchive.org/release-group/%s/%s';
@@ -92,7 +92,7 @@ sub getAlbumCovers {
 			}
 
 			if ( !$result->{images} && !main::SCANNER ) {
-				$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+				$result->{error} ||= Slim::Utils::Strings::cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 			}
 
 			$cb->($result);
@@ -180,8 +180,8 @@ sub getAlbum {
 sub _call {
 	my ( $resource, $args, $cb ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call(
-		($resource =~ /^https?:/ ? $resource : (BASE_URL . $resource)) . '?' . join( '&', Plugins::MusicArtistInfo::Common->getQueryString($args), 'fmt=json' ),
+	Plugins::MusicArtistInfoMosaicly::Common->call(
+		($resource =~ /^https?:/ ? $resource : (BASE_URL . $resource)) . '?' . join( '&', Plugins::MusicArtistInfoMosaicly::Common->getQueryString($args), 'fmt=json' ),
 		$cb,
 		{
 			cache   => 1,

@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::Publisher;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Publisher;
 
 use strict;
 use warnings;
@@ -30,9 +30,9 @@ sub _native {
     require Slim::Music::Artwork;
     require Slim::Utils::Misc;
     require Slim::Utils::Unicode;
-    require Plugins::MusicArtistInfo::LocalArtwork;
-    require Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates;
-    require Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver;
+    require Plugins::MusicArtistInfoMosaicly::LocalArtwork;
+    require Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates;
+    require Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver;
     return Slim::Schema->dbh;
 }
 
@@ -58,14 +58,14 @@ sub identity {
 
 sub _local {
     my ($id,$name)=@_;
-    return Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+    return Plugins::MusicArtistInfoMosaicly::LocalArtwork->getArtistPhoto({
         artist_id=>$id,artist=>Slim::Utils::Unicode::utf8decode($name),
         rawUrl=>1,force=>1});
 }
 
 sub _sources_current {
     my ($id,$job,$result)=@_;
-    my $d=Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates->discover(
+    my $d=Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates->discover(
         contributor_id=>$id);
     return unless $d->{ok};
     my %live=map {$_->{album_id}=>$_->{artwork_id}} @{$d->{candidates}};
@@ -73,7 +73,7 @@ sub _sources_current {
     for my $s (@{$result->{sources}}) {
         my $album=$s->{album_id};
         return unless defined($live{$album}) && $live{$album} eq $s->{artwork_id};
-        my $fresh=Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver->describe(
+        my $fresh=Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver->describe(
             album_id=>$album,artwork_id=>$s->{artwork_id});
         return unless $fresh->{ok} && $old{$album}
             && $json->encode($fresh) eq $json->encode($old{$album});

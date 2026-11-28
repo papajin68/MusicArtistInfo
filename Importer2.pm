@@ -1,7 +1,7 @@
-package Plugins::MusicArtistInfo::Importer2;
+package Plugins::MusicArtistInfoMosaicly::Importer2;
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
+use Plugins::MusicArtistInfoMosaicly::PortraitSource qw(onlineEnabled);
 use Digest::MD5;
 use File::Spec::Functions qw(catdir);
 use File::Slurp;
@@ -15,9 +15,9 @@ use Slim::Utils::ImageResizer;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
-use Plugins::MusicArtistInfo::Common qw(CAN_LMS_ARTIST_ARTWORK CAN_ONLINE_LIBRARY isDirWritable);
-use Plugins::MusicArtistInfo::API;
-use Plugins::MusicArtistInfo::LocalArtwork;
+use Plugins::MusicArtistInfoMosaicly::Common qw(CAN_LMS_ARTIST_ARTWORK CAN_ONLINE_LIBRARY isDirWritable);
+use Plugins::MusicArtistInfoMosaicly::API;
+use Plugins::MusicArtistInfoMosaicly::LocalArtwork;
 
 use constant MAX_IMAGE_SIZE => 3072 * 3072;
 use constant IS_ONLINE_LIBRARY_SCAN => main::SCANNER && $ARGV[-1] && $ARGV[-1] eq 'onlinelibrary' ? 1 : 0;
@@ -27,8 +27,8 @@ my %artistPictureImporterHandlers = ();
 tie %artistPictureImporterHandlers, 'Tie::RegexpHash';
 
 my $cache = Slim::Utils::Cache->new();
-my $log = logger('plugin.musicartistinfo');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $serverprefs = preferences('server');
 
 my ($i, $ua, $cachedir, $imgProxyCache, $specs, $testSpec, $max, $precacheArtwork, $imageFolder, $isWipeDb, $saveMissingArtistPicturePlaceholder);
@@ -37,7 +37,7 @@ sub startScan {
 	my $class = shift;
 	return unless onlineEnabled($prefs);
 
-	Plugins::MusicArtistInfo::Importer->_initCacheFolder(_cacheFolder(), $prefs->get('artistImageFolder'));
+	Plugins::MusicArtistInfoMosaicly::Importer->_initCacheFolder(_cacheFolder(), $prefs->get('artistImageFolder'));
 
 	if (CAN_ONLINE_LIBRARY && !scalar keys %artistPictureImporterHandlers) {
 		foreach my $importerClass (Slim::Utils::PluginManager->enabledPlugins) {
@@ -133,13 +133,13 @@ sub _scanArtistPhotos {
 	if ($count) {
 		$progress = Slim::Utils::Progress->new({
 			'type'  => 'importer',
-			'name'  => 'plugin_musicartistinfo_artistPhoto',
+			'name'  => 'plugin_musicartistinfomosaicly_artistPhoto',
 			'total' => $count,
 			'bar'   => 1
 		});
 	}
 
-	$ua = onlineEnabled($prefs) ? Plugins::MusicArtistInfo::Common->getUA() : undef;
+	$ua = onlineEnabled($prefs) ? Plugins::MusicArtistInfoMosaicly::Common->getUA() : undef;
 
 	while ( _getArtistPhotoURL({
 		sth      => $sth,
@@ -191,7 +191,7 @@ sub _getArtistPhotoURL {
 			$done++;
 		}
 		# always look up local file updates
-		elsif ( my $file = Plugins::MusicArtistInfo::LocalArtwork->getArtistPhoto({
+		elsif ( my $file = Plugins::MusicArtistInfoMosaicly::LocalArtwork->getArtistPhoto({
 			artist_id => $artist_id,
 			artist    => $artist->{name},
 			rawUrl    => 1,		# don't return the proxied URL, we want the raw file
@@ -223,7 +223,7 @@ sub _getArtistPhotoURL {
 			$done++;
 		}
 		elsif (!$done && $ua) {		# only defined in Online mode
-			Plugins::MusicArtistInfo::API->getArtistPhoto(sub {
+			Plugins::MusicArtistInfoMosaicly::API->getArtistPhoto(sub {
 				_precacheArtistImage($artist, @_);
 			}, {
 				artist => $artist->{name},
@@ -270,7 +270,7 @@ sub _precacheArtistImage {
 	my $url = $img->{url} if ref $img eq 'HASH';
 
 	if ( $imageFolder && $saveMissingArtistPicturePlaceholder && !($artist_id && ($img && ref $img ? $url : $img)) ) {
-		my $file = Plugins::MusicArtistInfo::Importer::filename('', $imageFolder, $artist->{name});
+		my $file = Plugins::MusicArtistInfoMosaicly::Importer::filename('', $imageFolder, $artist->{name});
 		$file =~ s/\.$/\.missing/;
 		if (!-f $file) {
 			main::INFOLOG && $log->is_info && $log->info("Putting placeholder file '$file'");
@@ -289,7 +289,7 @@ sub _precacheArtistImage {
 
 		# if user wants us to save a copy on the disk, write to our image folder instead
 		if ($imageFolder) {
-			$file = Plugins::MusicArtistInfo::Importer::filename($url, $imageFolder, $artist->{name});
+			$file = Plugins::MusicArtistInfoMosaicly::Importer::filename($url, $imageFolder, $artist->{name});
 		}
 		else {
 			$file = catdir( $cachedir, 'imgproxy_' . Digest::MD5::md5_hex($url) );
@@ -340,7 +340,7 @@ sub _precacheArtistImage {
 		unlink $file;
 	}
 	elsif ( !CAN_LMS_ARTIST_ARTWORK && $precacheArtwork ) {
-		$img ||= Plugins::MusicArtistInfo::LocalArtwork->defaultArtistPhoto();
+		$img ||= Plugins::MusicArtistInfoMosaicly::LocalArtwork->defaultArtistPhoto();
 		$img = Slim::Utils::Misc::pathFromFileURL($img) if Slim::Music::Info::isFileURL($img);
 
 		return unless $img && -f $img;

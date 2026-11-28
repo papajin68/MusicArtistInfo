@@ -1,7 +1,7 @@
-package Plugins::MusicArtistInfo::API;
+package Plugins::MusicArtistInfoMosaicly::API;
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
+use Plugins::MusicArtistInfoMosaicly::PortraitSource qw(onlineEnabled);
 use Digest::SHA1 qw(sha1_base64);
 use URI;
 use URI::Escape qw(uri_escape_utf8);
@@ -26,8 +26,8 @@ use constant KILLWORDS_URL   => BASE_URL . '/metadata/killwords';
 use constant PLUGIN_PACKAGE => __PACKAGE__ =~ s/\b(?:\w+)$/Plugin/r;
 
 my $cache = Slim::Utils::Cache->new();
-my $log = logger('plugin.musicartistinfo');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 my $serverPrefs = preferences('server');
 
 my $xMAICfgString;
@@ -210,7 +210,7 @@ sub getLyrics {
 			main::INFOLOG && $log->is_info && $log->info("found lyrics: " . Data::Dump::dump($result));
 
 			if ($result && $result->{instrumental}) {
-				$result->{lyrics} = Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFO_INSTRUMENTAL');
+				$result->{lyrics} = Slim::Utils::Strings::string('PLUGIN_MUSICARTISTINFOMOSAICLY_INSTRUMENTAL');
 			}
 
 			$cb->($result);
@@ -289,7 +289,7 @@ sub _call {
 	# no need to do the http request if we're already fetching it
 	return if scalar @{ $queryQueue{$url} } > 1;
 
-	Plugins::MusicArtistInfo::Common->call($url, sub {
+	Plugins::MusicArtistInfoMosaicly::Common->call($url, sub {
 		my ($result, @moreResults) = @_;
 
 		if ($result && ref $result && ref $result eq 'HASH' && $result->{error}) {
@@ -330,8 +330,8 @@ sub _initXMAICfgString {
 		$xMAICfgString = undef;
 	}
 
-	$version ||= (main::SCANNER && Slim::Utils::PluginManager->dataForPlugin('Plugins::MusicArtistInfo::Importer')->{version})
-	          || (!main::SCANNER && $Plugins::MusicArtistInfo::Plugin::VERSION) || 'unk';
+	$version ||= (main::SCANNER && Slim::Utils::PluginManager->dataForPlugin('Plugins::MusicArtistInfoMosaicly::Importer')->{version})
+	          || (!main::SCANNER && $Plugins::MusicArtistInfoMosaicly::Plugin::VERSION) || 'unk';
 
 	my $serverId;
 

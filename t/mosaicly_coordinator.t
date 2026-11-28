@@ -13,9 +13,9 @@ use Time::HiRes qw(time sleep);
 BEGIN {
     my $p="$FindBin::Bin/../Mosaicly/Process.pm";
     require $p;
-    $INC{'Plugins/MusicArtistInfo/Mosaicly/Process.pm'}=$p;
+    $INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/Process.pm'}=$p;
     require "$FindBin::Bin/../Mosaicly/Runtime.pm";
-    $INC{'Plugins/MusicArtistInfo/Mosaicly/Runtime.pm'}=1;
+    $INC{'Plugins/MusicArtistInfoMosaicly/Mosaicly/Runtime.pm'}=1;
     require "$FindBin::Bin/../Mosaicly/Coordinator.pm";
 }
 my $root=abs_path(tempdir(CLEANUP=>1));
@@ -57,7 +57,7 @@ for my $pair (['portrait.jpg',$jpeg],['result.json',JSON::PP->new->utf8->encode(
 exit 7 if $mode eq 'nonzero';
 WORKER
 close $fh;
-my $c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(
+my $c='Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator'->new(
     root=>$root,library=>$root,worker=>$script,includes=>[],perl=>abs_path($^X));
 sub job {
     my ($mode)=@_;
@@ -121,11 +121,11 @@ is($c->start(job('valid'))->{reason},'busy','no overlapping worker after ambiguo
 # Separate persistent cache and transient workspace; loss of the latter
 # must never be treated as proof of worker termination after restart.
 my $cache=abs_path(tempdir(CLEANUP=>1));
-my $runtime='Plugins::MusicArtistInfo::Mosaicly::Runtime';
+my $runtime='Plugins::MusicArtistInfoMosaicly::Mosaicly::Runtime';
 my $marker=$runtime->ownershipPath($cache);
 my $transient=abs_path(tempdir(CLEANUP=>1));
 my %args=(library=>$root,worker=>$script,includes=>[],perl=>abs_path($^X),ownership=>$marker);
-$c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(root=>$transient,%args);
+$c='Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator'->new(root=>$transient,%args);
 ok($runtime->ownershipClear($marker),'persistent marker initially absent');
 ok($c->start(job('valid'))->{ok},'persistent reservation launch');
 ok(-d $marker,'marker exists while worker owned');
@@ -142,7 +142,7 @@ remove_tree($transient);
 ok(!-e $transient,'old synthetic transient workspace removed');
 # A fresh transient root models restart with lost temporary storage.
 my $fresh=abs_path(tempdir(CLEANUP=>1));
-$c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(root=>$fresh,%args);
+$c='Plugins::MusicArtistInfoMosaicly::Mosaicly::Coordinator'->new(root=>$fresh,%args);
 ok(!-e "$fresh/active",'new transient root empty');
 ok($c->busy,'persistent orphan blocks new coordinator');
 ok(!$c->drain,'persistent orphan blocks scanner drain');

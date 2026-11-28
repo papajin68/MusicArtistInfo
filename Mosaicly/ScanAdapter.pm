@@ -1,8 +1,8 @@
-package Plugins::MusicArtistInfo::Mosaicly::ScanAdapter;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdapter;
 use strict;
 use warnings;
-use Plugins::MusicArtistInfo::Mosaicly::ScanSession;
-use Plugins::MusicArtistInfo::Mosaicly::ScanAdmission;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanSession;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdmission;
 use Time::HiRes qw(time);
 
 sub install {
@@ -11,7 +11,7 @@ sub install {
     require Slim::Control::Request;
     require Slim::Utils::Timers;
     my $native=Slim::Music::Import->can('launchScan') or die 'native launch unavailable';
-    my $owner=Plugins::MusicArtistInfo::Mosaicly::ScanSession->new(
+    my $owner=Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanSession->new(
         %a,
         process=>sub { Slim::Music::Import->scanningProcess },
         schedule=>sub {
@@ -36,7 +36,7 @@ sub install {
     my $next=Slim::Music::Import->can('nextScanTask') or die 'native queue dispatch unavailable';
     my $abort=Slim::Music::Import->can('abortScan') or die 'native abort unavailable';
     my $queue=Slim::Music::Import->can('queueScanTask') or die 'native queue unavailable';
-    my $admission=Plugins::MusicArtistInfo::Mosaicly::ScanAdmission->new(
+    my $admission=Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanAdmission->new(
         invalidate=>sub { $owner->invalidate },
         drain=>$a{drain},
         schedule=>sub {

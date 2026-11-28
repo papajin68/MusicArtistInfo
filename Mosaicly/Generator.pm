@@ -1,18 +1,18 @@
-package Plugins::MusicArtistInfo::Mosaicly::Generator;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::Generator;
 
 use strict;
 use warnings;
 use bytes;
-use Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates;
-use Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver;
-use Plugins::MusicArtistInfo::Mosaicly::Selection;
-use Plugins::MusicArtistInfo::Mosaicly::Layout;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Selection;
+use Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout;
 
-my $discover = 'Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates';
-my $resolver = 'Plugins::MusicArtistInfo::Mosaicly::ArtworkResolver';
-my $selection = 'Plugins::MusicArtistInfo::Mosaicly::Selection';
-my $compositor = 'Plugins::MusicArtistInfo::Mosaicly::Compositor';
-my $layout = 'Plugins::MusicArtistInfo::Mosaicly::Layout';
+my $discover = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates';
+my $resolver = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::ArtworkResolver';
+my $selection = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Selection';
+my $compositor = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
+my $layout = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::Layout';
 
 # Internal worker entry point, never a server-event-loop API. The caller
 # must enforce external timeout, process isolation and single-worker
@@ -41,7 +41,7 @@ sub generate {
     return {ok=>0, reason=>'worker_containment_required'}
         unless _contained();
     my $r = eval {
-        require Plugins::MusicArtistInfo::Mosaicly::Compositor;
+        require Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor;
         if (exists $args{job}) {
             $class->_generate_job($id, $progressive, $args{job});
         } else {

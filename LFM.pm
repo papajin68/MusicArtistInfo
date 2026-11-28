@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::LFM;
+package Plugins::MusicArtistInfoMosaicly::LFM;
 
 use strict;
 use URI::Escape qw(uri_escape_utf8);
@@ -8,14 +8,14 @@ use Slim::Utils::Log;
 use Slim::Utils::Text;
 use Slim::Utils::Strings qw(string cstring);
 
-use Plugins::MusicArtistInfo::Common;
+use Plugins::MusicArtistInfoMosaicly::Common;
 
 use constant BASE_API_URL => 'http://ws.audioscrobbler.com/2.0/';
 use constant BASE_URL     => 'https://www.last.fm/music/';
 use constant ARTISTIMAGESEARCH_URL => BASE_URL . '%s/+images';
 
 my $cache = Slim::Utils::Cache->new;
-my $log = logger('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
 
 # language codes to be used in Last.fm lookups - only these are available, otherwise fall back to English
 sub _lfmLanguage {
@@ -92,7 +92,7 @@ sub getBiography {
 			});
 		}
 		else {
-			$cb->({ error => cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND') })
+			$cb->({ error => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND') })
 		}
 	}, $args);
 }
@@ -117,7 +117,7 @@ sub getRelatedArtists {
 			});
 		}
 		else {
-			$cb->({ error => cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND') })
+			$cb->({ error => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND') })
 		}
 	}, $args);
 }
@@ -157,7 +157,7 @@ sub _getArtistPhotos {
 		return;
 	}
 
-	Plugins::MusicArtistInfo::Common->call(
+	Plugins::MusicArtistInfoMosaicly::Common->call(
 		sprintf(ARTISTIMAGESEARCH_URL, uri_escape_utf8($args->{simplify} ? $simplifiedArtist : $artist)),
 		sub {
 			my ($results) = @_;
@@ -223,7 +223,7 @@ sub getArtistPhoto {
 
 		if (!$photo && $main::SERVER) {
 			$photo = {
-				error => cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND')
+				error => cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND')
 			};
 		}
 
@@ -277,7 +277,7 @@ sub getAlbumCovers {
 		}
 
 		if ( !$result->{images} && !main::SCANNER ) {
-			$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+			$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 		}
 
 		$cb->($result);
@@ -303,7 +303,7 @@ sub getAlbumReview {
 		}
 
 		if ( !$result->{review} && !main::SCANNER ) {
-			$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND');
+			$result->{error} ||= cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND');
 		}
 
 		$cb->($result);
@@ -332,8 +332,8 @@ sub getAlbum {
 sub _call {
 	my ( $args, $cb ) = @_;
 
-	Plugins::MusicArtistInfo::Common->call(
-		BASE_API_URL . '?' . join( '&', Plugins::MusicArtistInfo::Common->getQueryString($args), Plugins::MusicArtistInfo::Common->getHeaders('lfm'), 'format=json' ),
+	Plugins::MusicArtistInfoMosaicly::Common->call(
+		BASE_API_URL . '?' . join( '&', Plugins::MusicArtistInfoMosaicly::Common->getQueryString($args), Plugins::MusicArtistInfoMosaicly::Common->getHeaders('lfm'), 'format=json' ),
 		$cb,
 		{
 			cache => 1,

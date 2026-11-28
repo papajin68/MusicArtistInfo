@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Parser::HTML;
+package Plugins::MusicArtistInfoMosaicly::Parser::HTML;
 
 use strict;
 
@@ -55,7 +55,7 @@ sub _proxiedUrl {
 	if ($url && $url =~ /^\.\./) {
 		require Cwd;
 		my $absolutePath = Cwd::abs_path(catfile($baseDir, $url));
-		$url = Plugins::MusicArtistInfo::LocalFile::_proxiedUrl(dirname($absolutePath), basename($absolutePath));
+		$url = Plugins::MusicArtistInfoMosaicly::LocalFile::_proxiedUrl(dirname($absolutePath), basename($absolutePath));
 	}
 
 	return $url;

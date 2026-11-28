@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::TrackInfo;
+package Plugins::MusicArtistInfoMosaicly::TrackInfo;
 
 use strict;
 
@@ -13,13 +13,13 @@ use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
 
-use Plugins::MusicArtistInfo::API;
-use Plugins::MusicArtistInfo::Common qw(CLICOMMAND isDirWritable);
-use Plugins::MusicArtistInfo::Parser::LRC;
+use Plugins::MusicArtistInfoMosaicly::API;
+use Plugins::MusicArtistInfoMosaicly::Common qw(CLICOMMAND isDirWritable);
+use Plugins::MusicArtistInfoMosaicly::Parser::LRC;
 
-my $log = logger('plugin.musicartistinfo');
-my $onlineLog = logger('plugin.musicartistinfo.online');
-my $prefs = preferences('plugin.musicartistinfo');
+my $log = logger('plugin.musicartistinfomosaicly');
+my $onlineLog = logger('plugin.musicartistinfomosaicly.online');
+my $prefs = preferences('plugin.musicartistinfomosaicly');
 
 my $lyricsProviderPipeline = [
 	'MAILyricsAPI',
@@ -127,7 +127,7 @@ sub getSongLyricsCLI {
 		$args->{track} = Slim::Schema->objectForUrl($url);
 	}
 	elsif ($client) {
-		$args->{track} = Plugins::MusicArtistInfo::Common::getTrackAndRadioUrl($client, $args);
+		$args->{track} = Plugins::MusicArtistInfoMosaicly::Common::getTrackAndRadioUrl($client, $args);
 	}
 
 	if ($args->{track}) {
@@ -169,7 +169,7 @@ sub getSongLyricsCLI {
 	$args->{title} =~ s/[\s\W]{2,}$//;
 	$args->{title} =~ s/\s*$//;
 
-	my $killWords = Plugins::MusicArtistInfo::Common::getKillWords() || {};
+	my $killWords = Plugins::MusicArtistInfoMosaicly::Common::getKillWords() || {};
 	foreach (qw(title artist album)) {
 		delete $args->{$_} if $killWords->{lc($args->{$_} || '')};
 	}
@@ -182,7 +182,7 @@ sub getSongLyricsCLI {
 		|| (length($args->{title}) > 50 && length($args->{artist}) > 50)
 	) {
 		main::INFOLOG && $log->is_info && $log->info("Don't look up lyrics, as we lack track title ('$args->{title}') or artist name ('$args->{artist}').");
-		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+		$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		$request->setStatusDone();
 		return;
 	}
@@ -217,7 +217,7 @@ sub getSongLyricsCLI {
 	}, sub {
 		my $item = shift;
 		if ( !$item || !ref $item ) {
-			$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND'));
+			$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND'));
 		}
 		elsif ( $item->{error} ) {
 			$request->addResult('error', $item->{error});
@@ -240,7 +240,7 @@ sub getLyrics {
 		my $responseText = $lyricsRequest->getResult('lyrics') || $lyricsRequest->getResult('error');
 
 		$cb->({
-			items => Plugins::MusicArtistInfo::Plugin->textAreaItem($client, $params->{isButton}, $responseText),
+			items => Plugins::MusicArtistInfoMosaicly::Plugin->textAreaItem($client, $params->{isButton}, $responseText),
 		});
 	};
 
@@ -263,34 +263,34 @@ sub getLyrics {
 my $lyricsProvider = {
 	MAILyricsAPI => sub {
 		my ($args, $cb) = @_;
-		Plugins::MusicArtistInfo::API->getLyrics($cb, $args);
+		Plugins::MusicArtistInfoMosaicly::API->getLyrics($cb, $args);
 	},
 	# AZLyrics => sub {
-	# 	require Plugins::MusicArtistInfo::Lyrics::AZLyrics;
-	# 	Plugins::MusicArtistInfo::Lyrics::AZLyrics->getLyrics(@_);
+	# 	require Plugins::MusicArtistInfoMosaicly::Lyrics::AZLyrics;
+	# 	Plugins::MusicArtistInfoMosaicly::Lyrics::AZLyrics->getLyrics(@_);
 	# },
 	# no lookup, only tell LRCLib to use the proxy
 	# LRCLibProxyEnable => sub {
 	# 	my ($args, $scb) = @_;
-	# 	require Plugins::MusicArtistInfo::Lyrics::LRCLib;
-	# 	Plugins::MusicArtistInfo::Lyrics::LRCLib->enableProxying();
+	# 	require Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib;
+	# 	Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib->enableProxying();
 	# 	$scb->();
 	# },
 	# LRCLibGet => sub {
-	# 	require Plugins::MusicArtistInfo::Lyrics::LRCLib;
-	# 	Plugins::MusicArtistInfo::Lyrics::LRCLib->getLyrics(@_)
+	# 	require Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib;
+	# 	Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib->getLyrics(@_)
 	# },
 	# LRCLibSearch => sub {
-	# 	require Plugins::MusicArtistInfo::Lyrics::LRCLib;
-	# 	Plugins::MusicArtistInfo::Lyrics::LRCLib->searchLyrics(@_)
+	# 	require Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib;
+	# 	Plugins::MusicArtistInfoMosaicly::Lyrics::LRCLib->searchLyrics(@_)
 	# },
 	# ChartLyrics => sub {
-	# 	require Plugins::MusicArtistInfo::Lyrics::ChartLyrics;
-	# 	Plugins::MusicArtistInfo::Lyrics::ChartLyrics->searchLyricsInDirect(@_);
+	# 	require Plugins::MusicArtistInfoMosaicly::Lyrics::ChartLyrics;
+	# 	Plugins::MusicArtistInfoMosaicly::Lyrics::ChartLyrics->searchLyricsInDirect(@_);
 	# },
 	Genius => sub {
-		require Plugins::MusicArtistInfo::Lyrics::Genius;
-		Plugins::MusicArtistInfo::Lyrics::Genius->getLyrics(@_);
+		require Plugins::MusicArtistInfoMosaicly::Lyrics::Genius;
+		Plugins::MusicArtistInfoMosaicly::Lyrics::Genius->getLyrics(@_);
 	},
 	GeniusNoDot => sub {
 		my ($args, $scb) = @_;
@@ -299,12 +299,12 @@ my $lyricsProvider = {
 			return $scb->();
 		}
 		else {
-			require Plugins::MusicArtistInfo::Lyrics::Genius;
+			require Plugins::MusicArtistInfoMosaicly::Lyrics::Genius;
 			# try one more time with punctuation removed - https://github.com/michaelherger/MusicArtistInfo/issues/12
 			$args->{artist} =~ s/\.//g;
 			$args->{title}  =~ s/\.//g;
 
-			Plugins::MusicArtistInfo::Lyrics::Genius->getLyrics($args, $scb);
+			Plugins::MusicArtistInfoMosaicly::Lyrics::Genius->getLyrics($args, $scb);
 		}
 	}
 };
@@ -395,11 +395,11 @@ sub _getLyricsCacheFile {
 		mkdir $lyricsFolder if $create && ! -d $lyricsFolder;
 
 		if (!$create || isDirWritable($lyricsFolder)) {
-			my $artistDir = catdir($lyricsFolder, @{Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{artist})}[0]);
+			my $artistDir = catdir($lyricsFolder, @{Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{artist})}[0]);
 			$artistDir =~ s/\.$//;
 			mkdir $artistDir if $create && ! -d $artistDir;
 
-			my $candidates = Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{title});
+			my $candidates = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{title});
 			my $lyricsFile = catfile($artistDir, $candidates->[0] . '.txt');
 
 			return $lyricsFile;
@@ -455,7 +455,7 @@ sub _getLocalLyrics {
 		$lyricsCacheFolder = dirname($lyricsCacheFolder) if $lyricsCacheFolder;
 
 		if ($lyricsCacheFolder && -r $lyricsCacheFolder) {
-			my $candidates = Plugins::MusicArtistInfo::Common::getLocalnameVariants($args->{title});
+			my $candidates = Plugins::MusicArtistInfoMosaicly::Common::getLocalnameVariants($args->{title});
 
 			opendir(LYRICSDIR, $lyricsCacheFolder) && do {
 				my %files = map {
@@ -495,10 +495,10 @@ sub _renderLyricsResponse {
 	$lyrics =~ s/\n\r/\n/g;
 	$lyrics =~ s/\r/\n/g;
 
-	$lyrics = Plugins::MusicArtistInfo::Parser::LRC->strip($lyrics, $request->getParam('timestamps') && !$args->{radioUrl});
+	$lyrics = Plugins::MusicArtistInfoMosaicly::Parser::LRC->strip($lyrics, $request->getParam('timestamps') && !$args->{radioUrl});
 
 	$request->addResult('lyrics', $lyrics) if $lyrics;
-	$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFO_NOT_FOUND')) unless $lyrics;
+	$request->addResult('error', cstring($client, 'PLUGIN_MUSICARTISTINFOMOSAICLY_NOT_FOUND')) unless $lyrics;
 	$request->addResult('title', $args->{title}) if $args->{title};
 	$request->addResult('artist', $args->{artist}) if $args->{artist};
 }
@@ -508,7 +508,7 @@ sub updateLyricsProviders {
 
 	Slim::Utils::Timers::killTimers($class, \&updateLyricsProviders);
 
-	Plugins::MusicArtistInfo::API->getLyricsProviders(sub {
+	Plugins::MusicArtistInfoMosaicly::API->getLyricsProviders(sub {
 		my $result = shift;
 
 		if ($result && ref $result && ref $result eq 'HASH' && $result->{lyricsProviders} && ref $result->{lyricsProviders} eq 'ARRAY') {

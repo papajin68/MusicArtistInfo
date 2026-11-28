@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::NormalizedPNG;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::NormalizedPNG;
 use strict;
 use warnings;
 use bytes;

@@ -8,9 +8,9 @@ use Digest::SHA qw(sha256_hex);
 
 load_native();
 
-my $c='Plugins::MusicArtistInfo::Mosaicly::Compositor';
-my $bmp='Plugins::MusicArtistInfo::Mosaicly::BMP';
-my $png='Plugins::MusicArtistInfo::Mosaicly::NormalizedPNG';
+my $c='Plugins::MusicArtistInfoMosaicly::Mosaicly::Compositor';
+my $bmp='Plugins::MusicArtistInfoMosaicly::Mosaicly::BMP';
+my $png='Plugins::MusicArtistInfoMosaicly::Mosaicly::NormalizedPNG';
 
 my $row=join '', map { my $v=int($_/50)%2 ? 255 : 0; pack('C3',$v,$v,$v) } 0..499;
 my $pixels=$row x 500;

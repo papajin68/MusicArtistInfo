@@ -6,7 +6,7 @@ use DBI;
 use Encode qw(encode);
 require './Mosaicly/AlbumCandidates.pm';
 require './Mosaicly/Selection.pm';
-my $class = 'Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates';
+my $class = 'Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates';
 my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '',
     { RaiseError => 1, PrintError => 0 });
 $dbh->do("ATTACH DATABASE ':memory:' AS persistentdb");
@@ -70,7 +70,7 @@ is_deeply(ids(discover(3)),[14],'album-as-artist ordinary relationship');
 is_deeply(ids(discover(2)),[],'existing contributor without albums');
 is(discover(99)->{reason},'contributor_not_found','unknown contributor');
 is(discover(0)->{reason},'invalid_identity','invalid ID');
-my $rank='Plugins::MusicArtistInfo::Mosaicly::Selection'->rank($r->{candidates});
+my $rank='Plugins::MusicArtistInfoMosaicly::Mosaicly::Selection'->rank($r->{candidates});
 is($rank->[0]{album_id},17,'selection contract compatible');
 $dbh->do("INSERT INTO persistentdb.tracks_persistent VALUES (20,'a',100)");
 is(discover(1)->{reason},'ambiguous_statistics','duplicate persistent match fatal');
@@ -90,7 +90,7 @@ $dbh->do('DROP TABLE albums');
 is(discover(1,statistics=>0)->{reason},'native_error','DB failure fatal');
 {
     no warnings 'redefine';
-    local *Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates::_native_context=sub {
+    local *Plugins::MusicArtistInfoMosaicly::Mosaicly::AlbumCandidates::_native_context=sub {
         {dbh=>$dbh,roles=>[1,5],va_id=>4,statistics=>0}
     };
     is($class->eligible_limit,4,'committed high water mark');

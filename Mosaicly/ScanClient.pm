@@ -1,4 +1,4 @@
-package Plugins::MusicArtistInfo::Mosaicly::ScanClient;
+package Plugins::MusicArtistInfoMosaicly::Mosaicly::ScanClient;
 use strict;
 use warnings;
 
