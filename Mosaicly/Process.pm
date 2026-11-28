@@ -96,6 +96,16 @@ sub launch {
     return {ok=>1,process=>$self};
 }
 
+# The timeout wrapper's ordinary exit is the existing proof of completed
+# supervision. Reserved timeout/exec/signal statuses and lost status are
+# deliberately not proof of descendant termination.
+sub termination_verified {
+    my ($class,$status)=@_;
+    return ref($status) eq 'HASH' && ($status->{state}//'') eq 'exited'
+        && defined($status->{exit_code}) && !ref($status->{exit_code})
+        && $status->{exit_code}=~/\A[0-9]+\z/ && $status->{exit_code}<124;
+}
+
 sub _status {
     my ($status)=@_;
     return WIFEXITED($status)

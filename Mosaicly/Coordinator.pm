@@ -45,6 +45,15 @@ sub busy {
     return !!($self->{active} || -e $self->{dir} || -l $self->{dir});
 }
 
+# Request a bounded natural drain. Do not signal the timeout wrapper,
+# release its reservation, or wait synchronously. The normal owner polls.
+# An orphan reservation has no verified process and remains busy.
+sub drain {
+    my ($self)=@_;
+    $self->{active}{discard}=1 if $self->{active};
+    return !$self->busy;
+}
+
 sub _write_job {
     my ($path,$bytes)=@_;
     sysopen my $fh,$path,O_WRONLY|O_CREAT|O_EXCL,0600 or die "create job: $!";
@@ -169,7 +178,7 @@ sub poll {
     my $p=$a->{process}->poll;
     return $p if $p->{state} eq 'running' || $p->{state} eq 'unresolved';
     delete $self->{active};
-    if ($p->{state} ne 'exited' || !defined($p->{exit_code}) || $p->{exit_code}>=124) {
+    if (!$process->termination_verified($p)) {
         # A killed or externally reaped timeout wrapper, or an ambiguous
         # reserved timeout/exec/signal exit code, is not evidence
         # that its descendant is gone. Retain the directory and block
@@ -177,7 +186,9 @@ sub poll {
         return {state=>'complete',ok=>0,reason=>'termination_unverified',process=>$p};
     }
     my $out;
-    if ($p->{exit_code}==0) {
+    if ($a->{discard}) {
+        $out=_fail('drained');
+    } elsif ($p->{exit_code}==0) {
         $out=eval {$self->_validate($a)};
         $out=_fail('invalid_result') if $@ || !$out;
     } else {

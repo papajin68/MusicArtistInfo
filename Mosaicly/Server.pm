@@ -51,7 +51,18 @@ sub busy { $_[0]{active} || $_[0]{coordinator}->busy }
 # Stop admission/publication, but retain the timer and process ownership.
 # A real server exit may prevent further polling; the reservation survives
 # if its storage survives. Never remove it on an unverified shutdown.
-sub shutdown { $_[0]{stopped}=1; return !$_[0]->busy }
+sub drain {
+    my ($self)=@_;
+    $self->{active}{discard}=1 if $self->{active};
+    $self->{coordinator}->drain;
+    return !$self->busy;
+}
+
+sub shutdown {
+    my ($self)=@_;
+    $self->{stopped}=1;
+    return $self->drain;
+}
 
 sub start {
     my ($self,%a)=@_;
@@ -89,7 +100,7 @@ sub _tick {
     }
     my $out=$r;
     if ($r->{state} eq 'complete' && $r->{ok}) {
-        $out=$self->{stopped} || !$self->{current}->($a->{epoch})
+        $out=$self->{stopped} || $a->{discard} || !$self->{current}->($a->{epoch})
             ? _fail('stale_job')
             : $self->{publisher}->publish(identity=>$a->{identity},output=>$r);
         # Report bounded metadata only, not JPEG bytes or private paths.
