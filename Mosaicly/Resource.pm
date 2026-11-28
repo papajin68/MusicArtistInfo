@@ -72,7 +72,7 @@ sub check {
     # for a namespace-relative root or a mount rooted at a host subtree.
     my $mounts=$read->('/proc/self/mountinfo');
     my @roots=defined($mounts) ?
-        $mounts =~ /^\d+ \d+ \d+:\d+ (\S+) \/sys\/fs\/cgroup \S+ .*? - cgroup2 \S+ \S+$/mg : ();
+        $mounts =~ /^\d+ \d+ \d+:\d+ (\S+) \/sys\/fs\/cgroup \S+(?: [^ \r\n]+)* - cgroup2 \S+ \S+$/mg : ();
     return _deny('cgroup_mount_unknown') unless @roots==1 && _safe_path($roots[0]);
     my ($root,$path)=($roots[0],$group[0]);
     if ($root ne '/' && $path ne '/') {

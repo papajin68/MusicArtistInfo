@@ -22,6 +22,8 @@ sub fixture {
 sub check { $class->check(read=>sub {$f{$_[0]}},absent=>sub {!exists $f{$_[0]}}) }
 sub reason { check()->{reason} }
 fixture(); ok(check()->{ok},'host and finite cgroup headroom');
+$f{'/proc/self/mountinfo'}="30 20 0:29 / /sys/fs/cgroup rw,nosuid shared:42 - cgroup2 cgroup rw\n";
+ok(check()->{ok},'optional mountinfo fields supported');
 $f{'/proc/meminfo'}="MemAvailable: 524287 kB\n";
 is(reason(),'host_memory_low','insufficient host headroom');
 $f{'/proc/meminfo'}="MemAvailable: 524288 kB\n";
