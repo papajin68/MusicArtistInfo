@@ -135,6 +135,10 @@ sub postinitPlugin {
             $mosaiclyScanner=Plugins::MusicArtistInfo::Mosaicly::ScanAdapter->install(
                 enabled=>sub { source($prefs) eq 'mosaicly' && $prefs->get('runImporter') && $mosaiclyLifecycle->server },
                 invalidate=>sub { $mosaiclyLifecycle->refresh },
+                drain=>sub {
+                    my $server=$mosaiclyLifecycle->server;
+                    return !$server || $server->drain;
+                },
                 # Scheduler integration deliberately deferred; no generation here.
                 completed=>sub { $log->warn('Mosaicly authenticated scan completed; scheduling disabled') },
                 report=>sub { $log->warn('Mosaicly scanner authorization unavailable') },

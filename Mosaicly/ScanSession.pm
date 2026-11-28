@@ -32,7 +32,13 @@ sub invalidate {
 sub shutdown {
     my ($self)=@_;
     $self->{stopped}=1;
+    $self->{admission}->shutdown if $self->{admission};
     $self->invalidate;
+}
+
+sub admissionPending {
+    my ($self)=@_;
+    return $self->{stopped} || ($self->{admission} && $self->{admission}->pending) ? 1 : 0;
 }
 
 sub _fresh {
