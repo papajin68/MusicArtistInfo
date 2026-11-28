@@ -2,8 +2,8 @@ package Plugins::MusicArtistInfo::Mosaicly::Lifecycle;
 use strict;
 use warnings;
 
-# The normal plugin owns one instance. Admission remains explicitly closed
-# until successful scan authorization and resource admission are integrated.
+# The normal plugin owns one instance. Admission requires the installed
+# scanner adapter, authenticated completion and current resource checks.
 sub new {
     my ($class,%a)=@_;
     die 'missing lifecycle callbacks' unless ref($a{enabled}) eq 'CODE'
@@ -31,7 +31,7 @@ sub refresh {
 }
 
 # A successful scan completion is the only entry point for a new epoch.
-# The explicit activation gate is still closed in the normal plugin.
+# The activation gate requires the installed scanner admission adapter.
 sub current {
     my ($self,$epoch)=@_;
     return 0 if $self->{stopped} || !defined($epoch) || $epoch!=$self->{epoch}

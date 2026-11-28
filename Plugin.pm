@@ -119,9 +119,10 @@ sub postinitPlugin {
     $mosaiclyLifecycle=Plugins::MusicArtistInfo::Mosaicly::Lifecycle->new(
         enabled=>sub { source($prefs) eq 'mosaicly' && $prefs->get('runImporter') },
         report=>sub { $log->warn('Mosaicly unavailable: '.$_[0]) },
-        # Keep generation closed until the complete initialized admission path
-        # and resource checks have been validated. No user-facing bypass.
-        activation=>sub { 0 },
+        # Generation is available only with the installed scanner admission
+        # adapter. Authenticated exit, current epoch and resource checks still
+        # govern every scheduled worker; no user-facing bypass.
+        activation=>sub { defined $mosaiclyScanner },
         resource=>sub {
             my $result=eval {
                 require Plugins::MusicArtistInfo::Mosaicly::Resource;
@@ -148,7 +149,14 @@ sub postinitPlugin {
                 page=>sub { $artists->eligible_page(@_) },
                 start=>sub {
                     my ($id,$epoch,$done)=@_;
-                    return $owner->server->start(contributor_id=>$id,epoch=>$epoch,done=>$done);
+                    my $r=$owner->server->start(
+                        contributor_id=>$id,epoch=>$epoch,done=>sub {
+                            my ($out)=@_;
+                            eval { $log->warn("Mosaicly worker finished: contributor=$id ".($out->{ok} ? 'published' : 'not_published')) };
+                            $done->($out);
+                        });
+                    eval { $log->warn("Mosaicly worker started: contributor=$id") } if $r->{ok};
+                    return $r;
                 },
                 schedule=>sub {
                     my ($cb)=@_;

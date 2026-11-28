@@ -690,4 +690,4 @@ PLUGIN_MUSICARTISTINFO_PORTRAIT_NONE
 	EN	None (no automatic generation)
 
 PLUGIN_MUSICARTISTINFO_PORTRAIT_PENDING
-	EN	Mosaicly generation is not yet operational in this development version. Selecting it disables automatic online portraits without generating new ones.
+	EN	Mosaicly is experimental and currently supported on Linux only. New portraits are generated after a successful supported library scan when the importer is enabled and resources permit. Existing portraits are not replaced.
