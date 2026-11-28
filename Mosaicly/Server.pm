@@ -18,6 +18,7 @@ sub new {
     my ($class,%a)=@_;
     die 'missing admission or lifecycle guard' unless ref($a{admit}) eq 'CODE'
         && ref($a{current}) eq 'CODE';
+    die 'persistent worker ownership required' unless defined $a{ownership};
     require Slim::Utils::OSDetect;
     require Slim::Utils::Timers;
     die 'unsupported platform' unless Slim::Utils::OSDetect::isLinux() && !main::SCANNER();
@@ -35,7 +36,7 @@ sub new {
     my $self=bless {admit=>$a{admit},current=>$a{current}},$class;
     $self->{coordinator}=Plugins::MusicArtistInfo::Mosaicly::Coordinator->new(
         root=>$a{jobs},library=>abs_path($lib),worker=>$worker,
-        includes=>\@includes,perl=>$perl,ev=>1);
+        includes=>\@includes,perl=>$perl,ev=>1,ownership=>$a{ownership});
     # Guard is bound to the specific active epoch, not just current idle status.
     my $owner=$self;
     weaken($owner);

@@ -13,6 +13,8 @@ BEGIN {
     my $p="$FindBin::Bin/../Mosaicly/Process.pm";
     require $p;
     $INC{'Plugins/MusicArtistInfo/Mosaicly/Process.pm'}=$p;
+    require "$FindBin::Bin/../Mosaicly/Runtime.pm";
+    $INC{'Plugins/MusicArtistInfo/Mosaicly/Runtime.pm'}=1;
     require "$FindBin::Bin/../Mosaicly/Coordinator.pm";
 }
 my $root=abs_path(tempdir(CLEANUP=>1));
@@ -115,4 +117,31 @@ is($r->{reason},'termination_unverified','ambiguous status fails closed');
 ok($c->busy,'ambiguous status retains reservation');
 ok(!$c->drain,'ambiguous termination never authorizes scanner');
 is($c->start(job('valid'))->{reason},'busy','no overlapping worker after ambiguous termination');
+# Separate persistent cache and transient workspace; loss of the latter
+# must never be treated as proof of worker termination after restart.
+my $cache=abs_path(tempdir(CLEANUP=>1));
+my $runtime='Plugins::MusicArtistInfo::Mosaicly::Runtime';
+my $marker=$runtime->ownershipPath($cache);
+my $transient=abs_path(tempdir(CLEANUP=>1));
+my %args=(library=>$root,worker=>$script,includes=>[],perl=>abs_path($^X),ownership=>$marker);
+$c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(root=>$transient,%args);
+ok($runtime->ownershipClear($marker),'persistent marker initially absent');
+ok($c->start(job('valid'))->{ok},'persistent reservation launch');
+ok(-d $marker,'marker exists while worker owned');
+is((stat($marker))[2]&07777,0700,'marker directory private');
+ok(!$runtime->ownershipClear($marker),'marker blocks independent scanner check');
+ok(finish()->{ok},'verified normal completion');
+ok($runtime->ownershipClear($marker),'verified completion removes marker');
+ok($c->drain,'normal drain ready');
+ok($c->start(job('ambiguous'))->{ok},'persistent ambiguous launch');
+is(finish()->{reason},'termination_unverified','ambiguous completion');
+ok(-d $marker,'ambiguous completion retains persistent marker');
+# A fresh transient root models restart with lost temporary storage.
+my $fresh=abs_path(tempdir(CLEANUP=>1));
+$c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(root=>$fresh,%args);
+ok(!-e "$fresh/active",'new transient root empty');
+ok($c->busy,'persistent orphan blocks new coordinator');
+ok(!$c->drain,'persistent orphan blocks scanner drain');
+is($c->start(job('valid'))->{reason},'busy','persistent orphan blocks replacement worker');
+ok(-d $marker,'orphan never removed by fresh owner');
 done_testing;

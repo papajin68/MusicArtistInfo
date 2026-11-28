@@ -8,6 +8,7 @@ use Cwd qw(abs_path);
 use JSON::PP;
 use Digest::SHA qw(sha256_hex);
 use Plugins::MusicArtistInfo::Mosaicly::Process;
+use Plugins::MusicArtistInfo::Mosaicly::Runtime;
 
 # One reserved directory per configured private root. A leftover directory
 # after a server crash blocks admission; do not guess that its worker died.
@@ -37,12 +38,15 @@ sub new {
     return bless {
         dir=>"$root/active", library=>$lib, worker=>$script,
         includes=>[@$includes], perl=>$perl, ev=>$args{ev},
+        ownership=>$args{ownership},
     },$class;
 }
 
 sub busy {
     my ($self)=@_;
-    return !!($self->{active} || -e $self->{dir} || -l $self->{dir});
+    return !!($self->{active} || -e $self->{dir} || -l $self->{dir}
+        || (defined($self->{ownership}) &&
+            !Plugins::MusicArtistInfo::Mosaicly::Runtime->ownershipClear($self->{ownership})));
 }
 
 # Request a bounded natural drain. Do not signal the timeout wrapper,
@@ -83,11 +87,41 @@ sub _read_bounded {
     return $bytes;
 }
 
+# Reserve on persistent storage before starting any process. Standalone
+# historical diagnostic callers may omit ownership; the normal Server may not.
+sub _reserve_ownership {
+    my ($self)=@_;
+    return 1 unless defined $self->{ownership};
+    my $path=$self->{ownership};
+    return 0 unless mkdir($path,0700);
+    my @st=lstat($path);
+    return 0 unless @st && -d _ && !-l _ && $st[4]==$>;
+    $self->{owned_marker}=[$st[0],$st[1]];
+    return 0 unless chmod(0700,$path);
+    @st=lstat($path);
+    return @st && -d _ && !-l _ && $st[4]==$>
+        && ($st[2]&07777)==0700
+        && $st[0]==$self->{owned_marker}[0] && $st[1]==$self->{owned_marker}[1];
+}
+
+sub _release_ownership {
+    my ($self)=@_;
+    return 1 unless defined $self->{ownership};
+    my $owned=$self->{owned_marker} or return 0;
+    my @st=lstat($self->{ownership});
+    return 0 unless @st && -d _ && !-l _ && $st[4]==$>
+        && $st[0]==$owned->[0] && $st[1]==$owned->[1];
+    return 0 unless rmdir($self->{ownership});
+    delete $self->{owned_marker};
+    return Plugins::MusicArtistInfo::Mosaicly::Runtime->ownershipClear($self->{ownership});
+}
+
 sub _cleanup {
     my ($self)=@_;
     my $errors;
     remove_tree($self->{dir},{safe=>1,error=>\$errors});
-    return !@$errors && !-e $self->{dir} && !-l $self->{dir};
+    return !@$errors && !-e $self->{dir} && !-l $self->{dir}
+        && $self->_release_ownership;
 }
 
 # Accept only a server-prepared descriptor job. This method does no native
@@ -103,6 +137,9 @@ sub start {
     my $bytes=eval {$json->encode($job)};
     return _fail('invalid_job') if $@ || !defined($bytes) || length($bytes)>262144;
     return _fail('reservation_failed') unless mkdir($self->{dir},0700);
+    # Reserve the persistent marker before any child can be launched.
+    # Failure leaves the transient reservation fail-closed.
+    return _fail('ownership_reservation_failed') unless $self->_reserve_ownership;
     my $written=eval {
         chmod 0700,$self->{dir} or die 'job directory chmod';
         die 'job directory permissions' unless ((stat($self->{dir}))[2]&0777)==0700;

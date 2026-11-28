@@ -137,7 +137,16 @@ sub postinitPlugin {
                 invalidate=>sub { $mosaiclyLifecycle->refresh },
                 drain=>sub {
                     my $server=$mosaiclyLifecycle->server;
-                    return !$server || $server->drain;
+                    return 0 if $server && !$server->drain;
+                    # Even Online/None or failed runtime initialization must
+                    # not bypass an unresolved prior worker after restart.
+                    my $clear=eval {
+                        require Plugins::MusicArtistInfo::Mosaicly::Runtime;
+                        my $runtime='Plugins::MusicArtistInfo::Mosaicly::Runtime';
+                        my $path=$runtime->ownershipPath(preferences('server')->get('cachedir'));
+                        $runtime->ownershipClear($path);
+                    };
+                    return $clear ? 1 : 0;
                 },
                 # Scheduler integration deliberately deferred; no generation here.
                 completed=>sub { $log->warn('Mosaicly authenticated scan completed; scheduling disabled') },

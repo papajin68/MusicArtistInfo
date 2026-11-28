@@ -47,7 +47,7 @@ $owner->refresh;
 is($builds,2,'shutdown prevents construction');
 
 SKIP: {
-    skip 'Linux runtime filesystem policy', 9 unless $^O eq 'linux';
+    skip 'Linux runtime filesystem policy', 14 unless $^O eq 'linux';
     require File::Temp;
     require './Mosaicly/Runtime.pm';
     my $root=File::Temp::tempdir(CLEANUP=>1);
@@ -58,6 +58,12 @@ SKIP: {
     my $p=$runtime->paths(%args);
     ok(-d $p->{jobs},'jobs directory');
     ok(-d $p->{portraits},'portrait directory');
+    is($p->{ownership},$runtime->ownershipPath("$root/cache"),'persistent cache marker path');
+    ok($runtime->ownershipClear($p->{ownership}),'marker absent');
+    mkdir $p->{ownership},0700 or die $!;
+    ok(!$runtime->ownershipClear($p->{ownership}),'marker blocks independent admission');
+    is_deeply($runtime->paths(%args),$p,'runtime initialization retains persistent marker');
+    ok(-d $p->{ownership},'persistent marker not cleared by initialization');
     isnt($p->{jobs},$p->{portraits},'separate roots');
     is((stat($p->{jobs}))[2]&07777,0700,'private jobs');
     is((stat($p->{portraits}))[2]&07777,0700,'private portraits');

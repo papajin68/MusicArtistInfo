@@ -5,6 +5,7 @@ use Cwd qw(abs_path);
 use File::Spec;
 use File::Temp qw(tempfile);
 use Digest::SHA qw(sha256_hex);
+use Errno qw(ENOENT);
 
 # Do not silently select a fresh root when an old reservation exists.
 # The temporary location is stable for a given cache and effective UID.
@@ -19,6 +20,25 @@ sub _private_dir {
         && $st[4]==$> && ($st[2]&07777)==0700
         && abs_path($path) eq $path;
     return $path;
+}
+
+# Persistent ownership is independent of the transient workspace and source
+# preference. Any existing entry, including a symlink, blocks admission.
+sub ownershipPath {
+    my ($class,$cache)=@_;
+    my $root=abs_path($cache // '');
+    die 'ownership parent unavailable' unless $root && -d $root;
+    return File::Spec->catdir($root,'.mai_mosaicly_worker_active');
+}
+
+sub ownershipClear {
+    my ($class,$path)=@_;
+    return 0 unless defined($path) && !ref($path);
+    my ($parent)= $path =~ m{\A(.+)/\.mai_mosaicly_worker_active\z};
+    return 0 unless defined($parent) && -d $parent && abs_path($parent) eq $parent;
+    local $!;
+    my @st=lstat($path);
+    return !@st && $! == ENOENT ? 1 : 0;
 }
 
 sub paths {
@@ -42,7 +62,7 @@ sub paths {
     my $closed=close($fh);
     my $removed=unlink($probe);
     die 'transient storage incompatible' unless $ok && $closed && $removed;
-    return {jobs=>$jobs,portraits=>$portraits};
+    return {jobs=>$jobs,portraits=>$portraits,ownership=>$class->ownershipPath($cache)};
 }
 
 1;
