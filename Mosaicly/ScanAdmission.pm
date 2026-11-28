@@ -65,8 +65,10 @@ sub next {
 
 sub abort {
     my ($self)=@_;
-    return unless $self->{held} && !$self->{stopped};
+    return if $self->{stopped};
+    # An already launched scanner must also lose its completion authorization.
     $self->{invalidate}->();
+    return unless $self->{held};
     # Native abortScan clears the queue only when stillScanning is true.
     # During our hold there may be no scanner yet.
     $self->{clear}->();
