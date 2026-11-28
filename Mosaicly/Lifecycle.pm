@@ -14,6 +14,7 @@ sub new {
 sub refresh {
     my ($self)=@_;
     ++$self->{epoch};
+    delete $self->{authorized};
     $self->{scheduler}->cancel if $self->{scheduler};
     return if $self->{stopped} || !$self->{enabled}->();
     return if $self->{server};
@@ -36,13 +37,15 @@ sub current {
     return 0 if $self->{stopped} || !defined($epoch) || $epoch!=$self->{epoch}
         || !defined($self->{authorized}) || $self->{authorized}!=$epoch
         || !$self->{activation} || !$self->{activation}->() || !$self->{enabled}->()
-        || !$self->{safe};
+        || !$self->{safe} || !$self->{scheduler} || !$self->{scheduler}->active;
     my $ok=eval { $self->{safe}->() };
-    return $ok && $self->{epoch}==$epoch && !$self->{stopped};
+    return $ok && $self->{epoch}==$epoch && !$self->{stopped}
+        && $self->{scheduler}->active && $self->{enabled}->() && $self->{activation}->();
 }
 sub completed {
     my ($self,$session)=@_;
-    return 0 unless $self->{server} && !$self->{stopped}
+    return 0 unless defined($session) && !ref($session) && $session=~/\A[1-9][0-9]*\z/
+        && $self->{server} && !$self->{stopped}
         && $self->{activation} && $self->{activation}->()
         && $self->{schedulerBuild};
     return 0 if defined($self->{lastSession}) && $session<=$self->{lastSession};

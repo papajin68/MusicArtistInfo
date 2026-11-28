@@ -11,13 +11,13 @@ my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '',
     { RaiseError => 1, PrintError => 0 });
 $dbh->do("ATTACH DATABASE ':memory:' AS persistentdb");
 for my $sql (
-    'CREATE TABLE contributors (id INTEGER PRIMARY KEY, namesearch TEXT)',
+    'CREATE TABLE contributors (id INTEGER PRIMARY KEY, namesearch TEXT, portrait TEXT, portraitid TEXT)',
     'CREATE TABLE albums (id INTEGER PRIMARY KEY, title BLOB, year INTEGER, artwork TEXT, contributor INTEGER, compilation INTEGER)',
     'CREATE TABLE contributor_album (role INTEGER, contributor INTEGER, album INTEGER, PRIMARY KEY(role,contributor,album))',
     'CREATE TABLE tracks (id INTEGER PRIMARY KEY, album INTEGER, audio INTEGER, content_type TEXT, urlmd5 TEXT)',
     'CREATE TABLE persistentdb.tracks_persistent (id INTEGER PRIMARY KEY, urlmd5 TEXT, playCount INTEGER)',
 ) { $dbh->do($sql); }
-for my $id (1..4) { $dbh->do('INSERT INTO contributors VALUES (?,?)',undef,$id,"name$id"); }
+for my $id (1..4) { $dbh->do('INSERT INTO contributors (id,namesearch) VALUES (?,?)',undef,$id,"name$id"); }
 for my $a (
     [10,encode('UTF-8','Straße'),2020,'00000010',1,0],
     [11,'Second',0,undef,1,0],
@@ -88,4 +88,20 @@ is(discover(1)->{reason},'native_error','enabled missing stats table fatal');
 ok(discover(1,statistics=>0)->{ok},'disabled stats needs no table');
 $dbh->do('DROP TABLE albums');
 is(discover(1,statistics=>0)->{reason},'native_error','DB failure fatal');
+{
+    no warnings 'redefine';
+    local *Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates::_native_context=sub {
+        {dbh=>$dbh,roles=>[1,5],va_id=>4,statistics=>0}
+    };
+    is($class->eligible_limit,4,'committed high water mark');
+    is_deeply($class->eligible_page(0,4,32),[1,3,4],'native role membership and VA');
+    is_deeply($class->eligible_page(0,4,1),[1],'bounded page');
+    is_deeply($class->eligible_page(1,4,32),[3,4],'keyset continuation');
+    is_deeply($class->eligible_page(0,3,32),[1,3],'high water bound');
+    $dbh->do("UPDATE contributors SET portrait='file:///local.jpg' WHERE id=1");
+    $dbh->do("UPDATE contributors SET portraitid='abc' WHERE id=3");
+    is_deeply($class->eligible_page(0,4,32),[4],'either assigned field excludes identity');
+    is_deeply($class->eligible_page(4,4,32),[],'exhausted page');
+    ok(!eval {$class->eligible_page(0,4,33);1},'oversized page rejected');
+}
 done_testing();
