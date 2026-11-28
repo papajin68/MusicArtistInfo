@@ -52,6 +52,7 @@ sub identity {
     my $row=_artist(_native(),$id);
     return unless $row && defined($row->{name})
         && !defined($row->{portrait}) && !defined($row->{portraitid});
+    return if _local($id,$row->{name});
     return {id=>$id,name=>$row->{name}};
 }
 

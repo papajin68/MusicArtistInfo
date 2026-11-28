@@ -36,6 +36,36 @@ sub _native_context {
         statistics => main::STATISTICS() ? 1 : 0 };
 }
 
+# Keyset pagination over committed, unassigned native contributor identities.
+# The role policy is shared with album discovery; no directory-name grouping.
+sub eligible_limit {
+    my $ctx=_native_context();
+    my ($max)=$ctx->{dbh}->selectrow_array('SELECT COALESCE(MAX(id),0) FROM contributors');
+    die 'artist limit query failed' if $ctx->{dbh}->err || !defined($max);
+    return $max;
+}
+sub eligible_page {
+    my ($class,$after,$limit,$size)=@_;
+    die 'invalid page bounds' unless defined($after) && $after=~/\A[0-9]+\z/
+        && defined($limit) && $limit=~/\A[0-9]+\z/ && _id($size) && $size<=32;
+    my $ctx=_native_context();
+    my @roles=@{$ctx->{roles}};
+    die 'invalid contributor roles' if grep {!_id($_)} @roles;
+    my $filter=@roles ? ' AND ca.role IN ('.join(',',map {'?'} @roles).')' : '';
+    my $sql="SELECT c.id FROM contributors c WHERE c.id>? AND c.id<=?
+        AND c.portrait IS NULL AND c.portraitid IS NULL
+        AND (c.id IN (SELECT ca.contributor FROM contributor_album ca
+            WHERE ca.contributor>? AND ca.contributor<=?$filter)";
+    my @bind=($after,$limit,$after,$limit,@roles);
+    if (defined $ctx->{va_id}) {
+        $sql.=' OR c.id=?';
+        push @bind,$ctx->{va_id};
+    }
+    $sql.=') ORDER BY c.id LIMIT ?';
+    push @bind,$size;
+    my $rows=_rows($ctx->{dbh},$sql,@bind);
+    return [map {$_->{id}} @$rows];
+}
 sub discover {
     my ($class, %args) = @_;
     return { ok => 0, reason => 'invalid_identity' } unless _id($args{contributor_id});

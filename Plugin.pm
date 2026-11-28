@@ -119,6 +119,40 @@ sub postinitPlugin {
     $mosaiclyLifecycle=Plugins::MusicArtistInfo::Mosaicly::Lifecycle->new(
         enabled=>sub { source($prefs) eq 'mosaicly' && $prefs->get('runImporter') },
         report=>sub { $log->warn('Mosaicly unavailable: '.$_[0]) },
+        # Keep generation closed until the complete initialized admission path
+        # and resource checks have been validated. No user-facing bypass.
+        activation=>sub { 0 },
+        resource=>sub { 0 },
+        safe=>sub {
+            return 0 unless $mosaiclyScanner && !$mosaiclyScanner->admissionPending;
+            return 0 unless Slim::Schema::hasLibrary();
+            return 0 if Slim::Music::Import->stillScanning || Slim::Music::Import->externalScannerRunning;
+            return !$mosaiclyScanner->admissionPending;
+        },
+        schedulerBuild=>sub {
+            my ($owner)=@_;
+            require Plugins::MusicArtistInfo::Mosaicly::Scheduler;
+            require Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates;
+            my $artists='Plugins::MusicArtistInfo::Mosaicly::AlbumCandidates';
+            return Plugins::MusicArtistInfo::Mosaicly::Scheduler->new(
+                current=>sub { $owner->current($_[0]) },
+                limit=>sub { $artists->eligible_limit },
+                page=>sub { $artists->eligible_page(@_) },
+                start=>sub {
+                    my ($id,$epoch,$done)=@_;
+                    return $owner->server->start(contributor_id=>$id,epoch=>$epoch,done=>$done);
+                },
+                schedule=>sub {
+                    my ($cb)=@_;
+                    Slim::Utils::Timers::setTimer($owner,Time::HiRes::time()+0.1,sub { $cb->() });
+                },
+                report=>sub {
+                    my ($reason,$counts)=@_;
+                    $log->warn('Mosaicly scan generation '.$reason.': '.join(', ',
+                        map { $_.'='.$counts->{$_} } qw(generated skipped failed deferred)));
+                },
+            );
+        },
         build=>sub {
             die 'native artist artwork required' unless CAN_LMS_ARTIST_ARTWORK;
             die 'unsupported platform' unless $^O eq 'linux';
@@ -148,8 +182,9 @@ sub postinitPlugin {
                     };
                     return $clear ? 1 : 0;
                 },
-                # Scheduler integration deliberately deferred; no generation here.
-                completed=>sub { $log->warn('Mosaicly authenticated scan completed; scheduling disabled') },
+                completed=>sub {
+                    $mosaiclyLifecycle->completed($_[0]);
+                },
                 report=>sub { $log->warn('Mosaicly scanner authorization unavailable') },
             );
         };

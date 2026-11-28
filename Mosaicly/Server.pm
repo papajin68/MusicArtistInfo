@@ -77,6 +77,7 @@ sub start {
     my $job=Plugins::MusicArtistInfo::Mosaicly::Generator->prepare_job(
         contributor_id=>$a{contributor_id});
     return $job unless $job->{ok};
+    return _fail('no_usable_artwork') unless grep { $_->{source}{ok} } @{$job->{entries}};
     return _fail('stale_job') unless $self->{current}->($a{epoch});
     return _fail('admission_denied') unless $self->{admit}->();
     my $r=$self->{coordinator}->start($job);
