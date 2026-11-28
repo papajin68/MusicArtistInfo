@@ -48,7 +48,7 @@ sub _pressure {
 }
 sub _safe_path {
     my ($p)=@_;
-    return defined($p) && $p =~ m{\A/(?:[A-Za-z0-9_.@:-]+(?:/[A-Za-z0-9_.@:-]+)*)?\z}
+    return defined($p) && $p =~ m{\A/(?:[A-Za-z0-9_.\@:-]+(?:/[A-Za-z0-9_.\@:-]+)*)?\z}
         && $p !~ m{(?:\A|/)\.{1,2}(?:/|\z)};
 }
 
