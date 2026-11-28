@@ -122,7 +122,15 @@ sub postinitPlugin {
         # Keep generation closed until the complete initialized admission path
         # and resource checks have been validated. No user-facing bypass.
         activation=>sub { 0 },
-        resource=>sub { 0 },
+        resource=>sub {
+            my $result=eval {
+                require Plugins::MusicArtistInfo::Mosaicly::Resource;
+                Plugins::MusicArtistInfo::Mosaicly::Resource->check;
+            };
+            return 1 if $result && $result->{ok};
+            $log->warn('Mosaicly resource admission deferred: '.($result ? $result->{reason} : 'unavailable'));
+            return 0;
+        },
         safe=>sub {
             return 0 unless $mosaiclyScanner && !$mosaiclyScanner->admissionPending;
             return 0 unless Slim::Schema::hasLibrary();
