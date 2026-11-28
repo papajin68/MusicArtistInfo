@@ -23,6 +23,12 @@ sub new {
     return bless {%a,random=>$random,boot=>$boot,next=>1},$class;
 }
 
+# Fixed event names only; never report boot identity, secret, or RPC payload.
+sub _observe {
+    my ($self,$event)=@_;
+    eval { $self->{observe}->($event) } if ref($self->{observe}) eq 'CODE';
+}
+
 sub invalidate {
     my ($self)=@_;
     $self->{active}{invalid}=1 if $self->{active};
@@ -76,6 +82,7 @@ sub launch {
         if (_fresh($candidate,$previous)) {
             $session->{process}=$candidate;
             $session->{invalid}=1 unless $ok;
+            $self->_observe('process_captured');
             $self->{schedule}->($self,$session);
         } elsif (!$ok || $@) {
             # Unknown launch ownership remains reserved until restart.
@@ -103,6 +110,7 @@ sub transition {
     my $step=$steps{$operation} or return 0;
     return 0 unless $s->{state} eq $step->[0];
     $s->{state}=$step->[1];
+    $self->_observe($step->[1]);
     return 1;
 }
 
@@ -116,12 +124,20 @@ sub poll {
         return;
     }
     delete $self->{active};
-    return if $self->{stopped} || $session->{invalid} || !$self->{enabled}->()
-        || $session->{state} ne 'CONSUMED';
+    if ($self->{stopped} || $session->{invalid} || !$self->{enabled}->()
+        || $session->{state} ne 'CONSUMED') {
+        $self->_observe('completion_rejected');
+        return;
+    }
     # The process must also report a successful exit, not merely non-liveness.
     my $status=eval { $session->{process}->wait };
-    return if $@ || !defined($status) || $status != 0;
+    if ($@ || !defined($status) || $status != 0) {
+        $self->_observe('exit_rejected');
+        return;
+    }
+    $self->_observe('exit_verified');
     $self->{completed}->($session->{id});
+    $self->_observe('completion_delivered');
 }
 
 1;

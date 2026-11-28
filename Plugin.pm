@@ -193,6 +193,7 @@ sub postinitPlugin {
                 completed=>sub {
                     $mosaiclyLifecycle->completed($_[0]);
                 },
+                observe=>sub { $log->warn('Mosaicly scanner session: '.$_[0]) },
                 report=>sub { $log->warn('Mosaicly scanner authorization unavailable') },
             );
         };

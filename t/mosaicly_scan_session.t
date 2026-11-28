@@ -8,12 +8,13 @@ require './Mosaicly/ScanSession.pm';
     sub wait { $_[0]{status} }
 }
 my ($process,$enabled,$invalidations)=(undef,1,0);
-my (@timers,@completed);
+my (@timers,@completed,@events);
 my $owner=Plugins::MusicArtistInfo::Mosaicly::ScanSession->new(
     enabled=>sub {$enabled}, process=>sub {$process},
     schedule=>sub {push @timers,[@_]},
     completed=>sub {push @completed,$_[0]},
     invalidate=>sub {++$invalidations}, report=>sub {},
+    observe=>sub {push @events,$_[0]},
     random=>sub {'a' x (2*$_[0])});
 my @credentials;
 sub native {
@@ -43,6 +44,7 @@ $t->[0]->poll($t->[1]);
 is(scalar @completed,0,'live scanner cannot authorize');
 finish();
 is_deeply(\@completed,[1],'successful exit authorizes once');
+is_deeply(\@events,[qw(process_captured CLAIMED ACKNOWLEDGED CONSUMED exit_verified completion_delivered)],'credential-free positive events in order');
 my @old=@credentials;
 my @result=$owner->launch(\&native);
 is_deeply(\@result,['a','b'],'list native result');
@@ -52,11 +54,13 @@ ok(transition('claim'),'new claim');
 ok(transition('ack'),'new ack');
 finish();
 is_deeply(\@completed,[1],'missing verify denied');
+is($events[-1],'completion_rejected','missing verify observed');
 $owner->launch(\&native);
 transition($_) for qw(claim ack verify);
 $process->{status}=256;
 finish();
 is_deeply(\@completed,[1],'failed exit denied');
+is($events[-1],'exit_rejected','failed exit observed');
 $owner->launch(\&native);
 transition($_) for qw(claim ack verify);
 $owner->invalidate;
@@ -72,4 +76,8 @@ $owner->shutdown;
 finish();
 is_deeply(\@completed,[1],'shutdown denies completion');
 ok($invalidations>=6,'launch and shutdown invalidate');
+ok(!(grep { /a{32}/ } @events),'no credentials in events');
+$owner->{observe}=sub {die 'log sink failed'};
+my $result=eval { $owner->_observe('process_captured'); 1 };
+ok($result,'logging failure does not escape');
 done_testing;
