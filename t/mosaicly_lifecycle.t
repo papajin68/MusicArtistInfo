@@ -47,7 +47,7 @@ $owner->refresh;
 is($builds,2,'shutdown prevents construction');
 
 SKIP: {
-    skip 'Linux runtime filesystem policy', 14 unless $^O eq 'linux';
+    skip 'Linux runtime filesystem policy', 19 unless $^O eq 'linux';
     require File::Temp;
     require './Mosaicly/Runtime.pm';
     my $root=File::Temp::tempdir(CLEANUP=>1);
@@ -64,6 +64,17 @@ SKIP: {
     ok(!$runtime->ownershipClear($p->{ownership}),'marker blocks independent admission');
     is_deeply($runtime->paths(%args),$p,'runtime initialization retains persistent marker');
     ok(-d $p->{ownership},'persistent marker not cleared by initialization');
+    rmdir $p->{ownership} or die $!;
+    symlink "$root/nonexistent",$p->{ownership} or die $!;
+    ok(!$runtime->ownershipClear($p->{ownership}),'dangling marker symlink blocks');
+    unlink $p->{ownership} or die $!;
+    open my $marker,'>',$p->{ownership} or die $!;
+    close $marker or die $!;
+    ok(!$runtime->ownershipClear($p->{ownership}),'unexpected marker file blocks');
+    unlink $p->{ownership} or die $!;
+    ok(!$runtime->ownershipClear("$root/missing/.mai_mosaicly_worker_active"),'missing cache parent blocks');
+    ok(!eval {$runtime->ownershipPath(undef);1},'undefined cache rejected');
+    ok(!eval {$runtime->ownershipPath('');1},'empty cache rejected');
     isnt($p->{jobs},$p->{portraits},'separate roots');
     is((stat($p->{jobs}))[2]&07777,0700,'private jobs');
     is((stat($p->{portraits}))[2]&07777,0700,'private portraits');

@@ -26,7 +26,8 @@ sub _private_dir {
 # preference. Any existing entry, including a symlink, blocks admission.
 sub ownershipPath {
     my ($class,$cache)=@_;
-    my $root=abs_path($cache // '');
+    die 'ownership parent unavailable' unless defined($cache) && !ref($cache) && length($cache);
+    my $root=abs_path($cache);
     die 'ownership parent unavailable' unless $root && -d $root;
     return File::Spec->catdir($root,'.mai_mosaicly_worker_active');
 }

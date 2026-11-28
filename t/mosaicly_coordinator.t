@@ -8,6 +8,7 @@ BEGIN {
 use FindBin;
 use File::Temp qw(tempdir);
 use Cwd qw(abs_path);
+use File::Path qw(remove_tree);
 use Time::HiRes qw(time sleep);
 BEGIN {
     my $p="$FindBin::Bin/../Mosaicly/Process.pm";
@@ -136,6 +137,9 @@ ok($c->drain,'normal drain ready');
 ok($c->start(job('ambiguous'))->{ok},'persistent ambiguous launch');
 is(finish()->{reason},'termination_unverified','ambiguous completion');
 ok(-d $marker,'ambiguous completion retains persistent marker');
+# Remove only this synthetic test workspace; model restart after actual loss.
+remove_tree($transient);
+ok(!-e $transient,'old synthetic transient workspace removed');
 # A fresh transient root models restart with lost temporary storage.
 my $fresh=abs_path(tempdir(CLEANUP=>1));
 $c='Plugins::MusicArtistInfo::Mosaicly::Coordinator'->new(root=>$fresh,%args);
