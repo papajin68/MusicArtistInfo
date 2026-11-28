@@ -52,6 +52,18 @@ sub _fresh {
     return blessed($new) && (!blessed($old) || refaddr($new)!=refaddr($old));
 }
 
+# The verified native request paths supply exactly rescan=>1 or wipe=>1.
+# All other native launches still run normally but cannot authorize Mosaicly.
+sub _supportedLaunch {
+    my ($class,$args)=@_;
+    return 0 unless @_==2 && defined($class) && !ref($class)
+        && $class eq 'Slim::Music::Import' && ref($args) eq 'HASH'
+        && keys(%$args)==1;
+    my ($key)=keys %$args;
+    return ($key eq 'rescan' || $key eq 'wipe') && defined($args->{$key})
+        && !ref($args->{$key}) && "$args->{$key}" eq '1';
+}
+
 sub launch {
     my ($self,$native,@args)=@_;
     # Every native launch attempt invalidates prior generation authorization.
@@ -59,7 +71,7 @@ sub launch {
     my $previous=$self->{process}->();
     my ($session,$bootstrap);
     if (!$self->{stopped} && $self->{enabled}->() && !$self->{active}
-            && $self->{next}<=2147483647) {
+            && $self->{next}<=2147483647 && _supportedLaunch(@args)) {
         my $secret=$self->{random}->(32);
         if (defined($secret) && $secret =~ /\A[a-f0-9]{64}\z/) {
             my $id="".$self->{next}++;

@@ -37,4 +37,26 @@ for my $v ('online','mosaicly','none') {
 for my $v (undef,'','ONLINE','0',[],{}, "online\n") {
     ok(!Plugins::MusicArtistInfo::PortraitSource::validSource($v),'invalid mode rejected');
 }
+# Pure registration predicate: the real scanner uses this after local folder registration.
+for my $case (
+    ['mosaicly',1,1,{}, {},1,0],
+    ['mosaicly',1,0,{}, {},0,0],
+    ['mosaicly',0,1,{}, {},0,0],
+    ['none',1,1,{}, {},0,0],
+    ['invalid',1,1,{}, {},0,0],
+    ['online',1,1,{}, {},1,1],
+    ['none',1,1,{lookupCoverArt=>1}, {},1,1],
+    ['none',1,1,{replaceOnlineGenres=>1}, {},1,1],
+    ['none',1,1,{}, {precacheArtwork=>1},1,1],
+    ['mosaicly',1,1,{lookupCoverArt=>1}, {},1,1],
+    ['online',0,1,{}, {},0,1],
+) {
+    my ($mode,$run,$native,$extra,$server,$required,$work)=@$case;
+    my $prefs=TestPrefs->new(artistPortraitSource=>$mode,runImporter=>$run,%$extra);
+    my $serverprefs=TestPrefs->new(%$server);
+    is(!!Plugins::MusicArtistInfo::PortraitSource::importerRequired($prefs,$serverprefs,$native),
+        !!$required,"importer registration $mode/$run/$native");
+    is(!!Plugins::MusicArtistInfo::PortraitSource::legacyImporterWork($prefs,$serverprefs),
+        !!$work,"legacy work $mode/$run/$native");
+}
 done_testing;

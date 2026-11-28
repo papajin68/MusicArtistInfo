@@ -3,7 +3,7 @@ package Plugins::MusicArtistInfo::Importer;
 # this is a helper class to only load the actual importer if LMS is compatible
 
 use strict;
-use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled);
+use Plugins::MusicArtistInfo::PortraitSource qw(onlineEnabled legacyImporterWork importerRequired);
 
 use Digest::MD5;
 use File::Spec::Functions qw(catdir);
@@ -43,7 +43,7 @@ sub initPlugin {
 		Slim::Music::ContributorPictureScan->addArtworkFolder($artworkFolder);
 	}
 
-	return unless $serverprefs->get('precacheArtwork') || onlineEnabled($prefs) || $prefs->get('lookupCoverArt') || $prefs->get('replaceOnlineGenres');
+	return unless importerRequired($prefs, $serverprefs, CAN_LMS_ARTIST_ARTWORK);
 
 	Slim::Music::Import->addImporter($class, {
 		'type'         => 'post',
@@ -51,7 +51,8 @@ sub initPlugin {
 		'use'          => 1,
 	});
 
-	$class->_initCacheFolder(_cacheFolder(), $serverprefs->get('artfolder'));
+	$class->_initCacheFolder(_cacheFolder(), $serverprefs->get('artfolder'))
+		if legacyImporterWork($prefs, $serverprefs);
 
 
 	return 1;
@@ -64,6 +65,12 @@ sub shutdownPlugin {
 
 sub startScan {
 	my $class = shift;
+
+	# Registration solely for Mosaicly must not activate unrelated importer work.
+	unless (legacyImporterWork($prefs, $serverprefs)) {
+		Slim::Music::Import->endImporter($class);
+		return;
+	}
 
 	$class->_scanAlbumCovers();
 	$class->_scanAlbumGenre() if CAN_ONLINE_LIBRARY && $prefs->get('replaceOnlineGenres');
